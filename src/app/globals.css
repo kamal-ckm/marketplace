@@ -1,26 +1,157 @@
 @import "tailwindcss";
 
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand Colors from Figma */
+  --primary: #00A59B;
+  --primary-dark: #008C84;
+  --primary-light: #00BFB3;
+
+  /* Accent Colors */
+  --accent-gold: #FFC600;
+  --accent-blue: #0031A7;
+  --accent-blue-light: #0057BF;
+
+  /* Neutrals */
+  --background: #FFFFFF;
+  --background-gray: #F5F5F5;
+  --foreground: #1A1A1A;
+  --foreground-secondary: #666666;
+
+  /* Semantic Colors */
+  --success: #22C55E;
+  --warning: #EAB308;
+  --error: #EF4444;
+  --info: #3B82F6;
+
+  /* Wallet Colors */
+  --wallet-active: #22C55E;
+  --rewards-active: #FFC600;
 }
 
 @theme inline {
+  --color-primary-*: initial;
+  --color-primary-50: #E6F7F6;
+  --color-primary-100: #CCEFED;
+  --color-primary-200: #99DFDB;
+  --color-primary-300: #66CFC9;
+  --color-primary-400: #33BFB7;
+  --color-primary-500: #00A59B;
+  --color-primary-600: #008C84;
+  --color-primary-700: #00736D;
+  --color-primary-800: #005A56;
+  --color-primary-900: #00413F;
+
+  --color-accent-*: initial;
+  --color-accent-gold: #FFC600;
+  --color-accent-blue: #0031A7;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* Typography */
+  --font-heading: 'Raleway', system-ui, sans-serif;
+  --font-body: 'Source Sans 3', system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0F172A;
+    --background-gray: #1E293B;
+    --foreground: #F8FAFC;
+    --foreground-secondary: #94A3B8;
   }
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Source Sans 3', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Raleway', system-ui, sans-serif;
+  font-weight: 700;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-gray);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Button base styles */
+.btn {
+  @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 active:scale-95;
+}
+
+.btn-primary {
+  @apply bg-primary-500 text-white hover:bg-primary-600 shadow-md hover:shadow-lg;
+}
+
+.btn-secondary {
+  @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+}
+
+.btn-outline {
+  @apply border-2 border-primary-500 text-primary-500 hover:bg-primary-50;
+}
+
+/* Card styles */
+.card {
+  @apply bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow;
+}
+
+/* Badge styles */
+.badge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.badge-wallet {
+  @apply bg-green-100 text-green-800;
+}
+
+.badge-sale {
+  @apply bg-red-100 text-red-800;
+}
+
+.badge-new {
+  @apply bg-blue-100 text-blue-800;
 }
