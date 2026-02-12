@@ -1,1 +1,310 @@
-'use client';\n\nimport { useEffect, useState } from 'react';\nimport Link from 'next/link';\nimport { ShoppingCart, ArrowRight, Wallet, CheckCircle2, ChevronRight, Package, Truck, ShieldCheck, HeartPulse } from 'lucide-react';\nimport { Header } from '@/components/layout/Header';\nimport { useCustomerAuth } from '@/lib/auth-customer';\n\nconst API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';\n\ninterface ProductCardProps {\n    id: string;\n    name: string;\n    slug: string;\n    price: string;\n    mrp: string;\n    images: string[];\n    category: string;\n}\n\nfunction ProductCard({ product }: { product: ProductCardProps }) {\n    const price = parseFloat(product.price);\n    const mrp = parseFloat(product.mrp);\n    const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;\n\n    return (\n        <Link\n            href={`/products/${product.slug}`}\n            className=\"group bg-white rounded-2xl border border-slate-100 overflow-hidden hover:border-[#00A59B]/30 hover:shadow-xl hover:shadow-[#00A59B]/5 transition-all duration-300 flex flex-col\"\n        >\n            <div className=\"relative aspect-[4/3] bg-slate-50 overflow-hidden\">\n                {product.images && product.images[0] ? (\n                    <img\n                        src={product.images[0]}\n                        alt={product.name}\n                        className=\"w-full h-full object-cover group-hover:scale-105 transition-transform duration-500\"\n                    />\n                ) : (\n                    <div className=\"w-full h-full flex items-center justify-center text-slate-300\">\n                        <ShoppingCart size={32} strokeWidth={1.5} />\n                    </div>\n                )}\n                {discount > 0 && (\n                    <div className=\"absolute top-3 left-3 bg-[#FFC600] text-slate-900 text-[10px] font-bold px-2 py-1 rounded-md shadow-sm\">\n                        {discount}% OFF\n                    </div>\n                )}\n                <div className=\"absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-[#00A59B] text-[10px] font-bold px-2 py-1 rounded-md shadow-sm border border-[#00A59B]/10\">\n                    WALLET ELIGIBLE\n                </div>\n            </div>\n\n            <div className=\"p-4 flex-1 flex flex-col\">\n                <span className=\"text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1\">{product.category}</span>\n                <h3 className=\"text-sm font-bold text-slate-900 line-clamp-2 mb-2 group-hover:text-[#00A59B] transition-colors\">{product.name}</h3>\n\n                <div className=\"mt-auto\">\n                    <div className=\"flex items-baseline gap-2\">\n                        <span className=\"text-lg font-bold text-slate-900\">₹{price.toLocaleString('en-IN')}</span>\n                        {mrp > price && (\n                            <span className=\"text-xs text-slate-400 line-through\">₹{mrp.toLocaleString('en-IN')}</span>\n                        )}\n                    </div>\n                </div>\n            </div>\n        </Link>\n    );\n}\n\nexport default function StorefrontPage() {\n    const [products, setProducts] = useState<ProductCardProps[]>([]);\n    const [loading, setLoading] = useState(true);\n    const { user, isAuthenticated } = useCustomerAuth();\n\n    useEffect(() => {\n        async function fetchProducts() {\n            try {\n                const res = await fetch(`${API_BASE}/api/products`);\n                const data = await res.json();\n                setProducts(data);\n            } catch (err) {\n                console.error('Failed to fetch products:', err);\n            } finally {\n                setLoading(false);\n            }\n        }\n        fetchProducts();\n    }, []);\n\n    return (\n        <div className=\"min-h-screen bg-[#FDFDFF] font-body\">\n            <Header />\n\n            {/* Hero Section */}\n            <section className=\"relative overflow-hidden bg-[#0F172A] pt-16 pb-24 lg:pt-24 lg:pb-32\">\n                <div className=\"absolute inset-0 opacity-20\">\n                    <div className=\"absolute top-0 -left-1/4 w-1/2 h-full bg-[#00A59B] blur-[120px] rounded-full\" />\n                    <div className=\"absolute bottom-0 -right-1/4 w-1/2 h-full bg-[#0031A7] blur-[120px] rounded-full\" />\n                </div>\n\n                <div className=\"container mx-auto px-4 relative z-10\">\n                    <div className=\"max-w-3xl\">\n                        <div className=\"inline-flex items-center gap-2 bg-[#00A59B]/10 border border-[#00A59B]/20 rounded-full px-4 py-1.5 mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700\">\n                            <span className=\"relative flex h-2 w-2\">\n                                <span className=\"animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00A59B] opacity-75\"></span>\n                                <span className=\"relative inline-flex rounded-full h-2 w-2 bg-[#00A59B]\"></span>\n                            </span>\n                            <span className=\"text-[10px] font-bold text-[#00A59B] uppercase tracking-widest\">Corporate Wellness Program</span>\n                        </div>\n                        <h1 className=\"text-4xl lg:text-7xl font-bold text-white mb-6 leading-[1.1] animate-in fade-in slide-in-from-bottom-6 duration-1000\" style={{ fontFamily: 'Raleway' }}>\n                            Your Health, <br /> Powered by <span className=\"text-[#00A59B]\">Healthi</span>\n                        </h1>\n                        <p className=\"text-lg lg:text-xl text-slate-300 mb-10 leading-relaxed max-w-2xl animate-in fade-in slide-in-from-bottom-8 duration-1000\">\n                            Use your employer-funded health wallet to shop the best wellness products. From high-tech fitness gear to daily nutrition.\n                        </p>\n                        <div className=\"flex flex-wrap gap-4 animate-in fade-in slide-in-from-bottom-10 duration-1000\">\n                            <button className=\"bg-[#00A59B] hover:bg-[#008C84] text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg shadow-[#00A59B]/25 active:scale-95\">\n                                Explore Shop\n                            </button>\n                            <button className=\"bg-white/5 hover:bg-white/10 text-white border border-white/10 backdrop-blur-md px-8 py-4 rounded-xl font-bold transition-all active:scale-95\">\n                                Check Eligibility\n                            </button>\n                        </div>\n                    </div>\n                </div>\n            </section>\n\n            {/* Quick Benefits */}\n            <div className=\"container mx-auto px-4 -mt-12 relative z-20\">\n                <div className=\"grid md:grid-cols-3 gap-6\">\n                    {[ \n                        { icon: Wallet, title: \"Wallet Integrated\", desc: \"Seamlessly use your health credit\" },\n                        { icon: Truck, title: \"Express Delivery\", desc: \"Get supplies at your doorstep\" },\n                        { icon: ShieldCheck, title: \"Quality Guaranteed\", desc: \"Handpicked wellness brands only\" }\n                    ].map((item, idx) => (\n                        <div key={idx} className=\"bg-white p-6 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 flex items-center gap-5 translate-y-0 hover:-translate-y-1 transition-transform\">\n                            <div className=\"w-14 h-14 bg-[#00A59B]/5 rounded-xl flex items-center justify-center text-[#00A59B]\">\n                                <item.icon size={28} />\n                            </div>\n                            <div>\n                                <h4 className=\"font-bold text-slate-900\">{item.title}</h4>\n                                <p className=\"text-sm text-slate-500\">{item.desc}</p>\n                            </div>\n                        </div>\n                    ))}\n                </div>\n            </div>\n\n            {/* Main Shop */}\n            <section className=\"py-20 lg:py-32\">\n                <div className=\"container mx-auto px-4\">\n                    <div className=\"flex items-end justify-between mb-12\">\n                        <div>\n                            <h2 className=\"text-3xl lg:text-4xl font-bold text-slate-900 mb-3\" style={{ fontFamily: 'Raleway' }}>Featured Products</h2>\n                            <p className=\"text-slate-500\">Handpicked wellness essentials for your daily routine.</p>\n                        </div>\n                        <Link href=\"/products\" className=\"hidden sm:flex items-center gap-2 text-[#00A59B] font-bold hover:gap-3 transition-all\">\n                            View All <ChevronRight size={18} />\n                        </Link>\n                    </div>\n\n                    {loading ? (\n                        <div className=\"flex justify-center py-20\">\n                            <Loader2 size={32} className=\"animate-spin text-[#00A59B]\" />\n                        </div>\n                    ) : (\n                        <div className=\"grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6\">\n                            {products.map(p => <ProductCard key={p.id} product={p} />)}\n                        </div>\n                    )}\n                </div>\n            </section>\n\n            <section className=\"bg-[#0031A7] py-16\">\n                <div className=\"container mx-auto px-4 text-center\">\n                    <HeartPulse size={48} className=\"text-white/20 mx-auto mb-6\" />\n                    <h2 className=\"text-3xl font-bold text-white mb-4\" style={{ fontFamily: 'Raleway' }}>Personalize Your Experience</h2>\n                    <p className=\"text-white/70 mb-8 max-w-xl mx-auto\">Link your Healthi account to see personalized recommendations based on your recent health checks and assessments.</p>\n                    <button className=\"bg-white text-[#0031A7] px-8 py-3 rounded-full font-bold hover:bg-[#FFC600] hover:text-slate-900 transition-colors shadow-lg shadow-black/10\">\n                        Connect Account\n                    </button>\n                </div>\n            </section>\n\n            <footer className=\"bg-slate-900 text-slate-400 py-20\">\n                <div className=\"container mx-auto px-4\">\n                    <div className=\"grid md:grid-cols-4 gap-12 mb-16\">\n                        <div className=\"col-span-2\">\n                            <Link href=\"/\" className=\"flex items-center gap-3 mb-6\">\n                                <div className=\"w-8 h-8 bg-[#00A59B] rounded-lg flex items-center justify-center font-bold text-white text-lg\">H</div>\n                                <span className=\"text-xl font-bold text-white\" style={{ fontFamily: 'Raleway' }}>Healthi</span>\n                            </Link>\n                            <p className=\"max-w-sm mb-6\">Your trusted destination for health and wellness products, fully integrated with your corporate health benefits.</p>\n                        </div>\n                        <div>\n                            <h5 className=\"text-white font-bold mb-6\">Shop</h5>\n                            <ul className=\"space-y-4 text-sm\">\n                                <li><Link href=\"#\" className=\"hover:text-[#00A59B] transition-colors\">Fitness Gear</Link></li>\n                                <li><Link href=\"#\" className=\"hover:text-[#00A59B] transition-colors\">Nutrition</Link></li>\n                                <li><Link href=\"#\" className=\"hover:text-[#00A59B] transition-colors\">Mental Health</Link></li>\n                            </ul>\n                        </div>\n                        <div>\n                            <h5 className=\"text-white font-bold mb-6\">Company</h5>\n                            <ul className=\"space-y-4 text-sm\">\n                                <li><Link href=\"#\" className=\"hover:text-[#00A59B] transition-colors\">About Us</Link></li>\n                                <li><Link href=\"#\" className=\"hover:text-[#00A59B] transition-colors\">Privacy Policy</Link></li>\n                                <li><Link href=\"#\" className=\"hover:text-[#00A59B] transition-colors\">Contact</Link></li>\n                            </ul>\n                        </div>\n                    </div>\n                    <div className=\"pt-8 border-t border-slate-800 text-center text-xs tracking-widest\">\n                        &copy; 2026 HEALTHI MARKETPLACE. ALL RIGHTS RESERVED.\n                    </div>\n                </div>\n            </footer>\n        </div>\n    );\n}\n
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Header } from '@/components/layout/Header';
+import { StorefrontCard } from '@/components/products/StorefrontCard';
+import { CouponCard } from '@/components/products/CouponCard';
+import { Button } from '@/components/ui/Button';
+import { ArrowRight, Loader2, Package, ShieldCheck, Truck, BadgeCheck, ChevronRight } from 'lucide-react';
+import type { APIProductCard } from '@/types/api';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
+const categories = [
+  { name: 'Gym & Fitness', icon: '🏋️' },
+  { name: 'Sports', icon: '🎾' },
+  { name: 'Diet & Nutrition', icon: '🥗' },
+  { name: 'Supplements', icon: '💊' },
+  { name: 'Condition Care', icon: '🩺' },
+  { name: 'Home Test Kits', icon: '🧪' },
+  { name: 'Medical Devices', icon: '🩻' },
+  { name: 'Petcare', icon: '🐶' },
+];
+
+const deals = [
+  {
+    id: '1',
+    title: 'Get 20% OFF on Gladful products',
+    price: 0,
+    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=2070',
+    brand: 'Gladful',
+    isFree: true,
+  },
+  {
+    id: '2',
+    title: 'Unlock 15% Savings on iPlanet',
+    price: 20,
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=2080',
+    brand: 'iPlanet',
+    isFree: false,
+  },
+  {
+    id: '3',
+    title: 'Flat 10% Extra on Whole Foods',
+    price: 0,
+    image: 'https://images.unsplash.com/photo-1490818387583-1baba5e638af?q=80&w=2032',
+    brand: 'Whole Foods',
+    isFree: true,
+  },
+  {
+    id: '4',
+    title: 'Exclusive 25% OFF on Fitness Gear',
+    price: 50,
+    image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070',
+    brand: 'FitnessPro',
+    isFree: false,
+  },
+];
+
+export default function HomePage() {
+  const [products, setProducts] = useState<APIProductCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchProducts() {
+      setLoading(true);
+      try {
+        let url = `${API_BASE}/api/products`;
+        if (selectedCategory) {
+          url += `?category=${encodeURIComponent(selectedCategory)}`;
+        }
+        const res = await fetch(url);
+        const data = await res.json();
+        setProducts(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProducts();
+  }, [selectedCategory]);
+
+  return (
+    <div className="min-h-screen bg-[var(--background)]">
+      <Header />
+
+      <main className="site-container py-8 md:py-10">
+        <section className="grid gap-6 rounded-2xl border border-[var(--border)] bg-white p-6 md:grid-cols-2 md:p-10">
+          <div className="flex flex-col justify-center gap-5">
+            <span className="inline-flex w-fit items-center rounded-full bg-[var(--primary-soft)] px-3 py-1 text-[12px] font-semibold text-[var(--primary)]">
+              Curated for Healthi members
+            </span>
+            <h1 className="text-[32px] font-bold leading-tight text-[var(--text-strong)] md:text-[46px]" style={{ fontFamily: 'Raleway' }}>
+              Your Health Marketplace,
+              <br />
+              Smarter and Simpler.
+            </h1>
+            <p className="max-w-lg text-[17px] text-[var(--text-body)]">
+              Shop wellness products with wallet support, verified delivery, and member-first pricing inspired by modern commerce experiences.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link href="#products">
+                <Button size="lg">
+                  Start shopping
+                  <ArrowRight size={17} className="ml-2" />
+                </Button>
+              </Link>
+              <Link href="/cart">
+                <Button variant="outline" size="lg">
+                  View cart
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="relative overflow-hidden rounded-xl bg-[var(--surface-alt)]">
+            <img
+              src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070"
+              alt="Wellness products"
+              className="h-full min-h-[260px] w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-tr from-black/45 via-black/15 to-transparent" />
+            <div className="absolute bottom-5 left-5 rounded-xl bg-white/95 px-4 py-3 shadow-sm">
+              <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--text-subtle)]">This week highlight</p>
+              <p className="text-[16px] font-semibold text-[var(--text-strong)]">Up to 40% OFF on supplements</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-2xl border border-[var(--border)] bg-white p-5 md:p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-[24px] font-bold text-[var(--text-strong)]" style={{ fontFamily: 'Raleway' }}>
+              Shop by category
+            </h2>
+            <Link href="/categories/all" className="text-[14px] font-semibold text-[var(--primary)]">
+              View all
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+            {categories.map((cat) => {
+              const isActive = selectedCategory === cat.name;
+              return (
+                <button
+                  key={cat.name}
+                  onClick={() => setSelectedCategory(isActive ? null : cat.name)}
+                  className={`rounded-xl border px-3 py-4 text-center transition ${isActive
+                      ? 'border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)]'
+                      : 'border-[var(--border)] bg-[var(--surface-alt)] text-[var(--text-strong)] hover:border-[var(--primary)]'
+                    }`}
+                >
+                  <div className="text-2xl">{cat.icon}</div>
+                  <p className="mt-2 text-[13px] font-semibold leading-4">{cat.name}</p>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section id="products" className="mt-10">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-[28px] font-bold text-[var(--text-strong)]" style={{ fontFamily: 'Raleway' }}>
+              Featured products
+            </h2>
+            <Link href="/categories/all" className="text-[14px] font-semibold text-[var(--primary)]">
+              Browse catalog
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center rounded-2xl border border-[var(--border)] bg-white py-16">
+              <Loader2 size={34} className="animate-spin text-[var(--primary)]" />
+            </div>
+          ) : products.length === 0 ? (
+            <div className="rounded-2xl border border-[var(--border)] bg-white py-16 text-center">
+              <Package size={46} className="mx-auto text-slate-300" strokeWidth={1.2} />
+              <p className="mt-4 text-[15px] font-semibold text-[var(--text-strong)]">No products found</p>
+              <p className="text-[13px] text-[var(--text-subtle)]">Try another category filter.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {products.map((product) => (
+                <StorefrontCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-12 rounded-2xl border border-[var(--border)] bg-white p-6 md:p-7">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-[24px] font-bold text-[var(--text-strong)]" style={{ fontFamily: 'Raleway' }}>
+              Exclusive partner coupons
+            </h2>
+            <Link href="/categories/offers" className="text-[14px] font-semibold text-[var(--primary)]">
+              See all offers
+            </Link>
+          </div>
+
+          <div className="mb-6 rounded-lg bg-[#f3f8fa] px-4 py-4 md:px-8 md:py-4">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:gap-6">
+              <p className="shrink-0 text-[18px] font-bold leading-8 text-[#0a0a0a]" style={{ fontFamily: 'Raleway' }}>
+                How it works
+              </p>
+
+              <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-white text-[16.8px] font-semibold text-[#0a0a0a]" style={{ fontFamily: 'Raleway' }}>
+                    1
+                  </div>
+                  <p className="text-[14px] font-semibold leading-6 text-[#0a0a0a]" style={{ fontFamily: 'Raleway' }}>
+                    Buy coupon on Healthi
+                  </p>
+                </div>
+
+                <ChevronRight className="hidden h-[14px] w-[14px] shrink-0 text-[#0a0a0a] md:block" />
+
+                <div className="flex items-center gap-2">
+                  <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-white text-[16.8px] font-semibold text-[#0a0a0a]" style={{ fontFamily: 'Raleway' }}>
+                    2
+                  </div>
+                  <p className="text-[14px] font-semibold leading-6 text-[#0a0a0a]" style={{ fontFamily: 'Raleway' }}>
+                    Get coupon code instantly via email
+                  </p>
+                </div>
+
+                <ChevronRight className="hidden h-[14px] w-[14px] shrink-0 text-[#0a0a0a] md:block" />
+
+                <div className="flex items-center gap-2">
+                  <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-white text-[16.8px] font-semibold text-[#0a0a0a]" style={{ fontFamily: 'Raleway' }}>
+                    3
+                  </div>
+                  <p className="text-[14px] font-semibold leading-6 text-[#0a0a0a]" style={{ fontFamily: 'Raleway' }}>
+                    Use code on vendor site to unlock deals
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {deals.map((deal) => (
+              <CouponCard key={deal.id} deal={deal} />
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-12 grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
+            <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--primary-soft)] text-[var(--primary)]">
+              <BadgeCheck size={16} />
+            </div>
+            <p className="text-[15px] font-semibold text-[var(--text-strong)]">Verified quality products</p>
+            <p className="mt-1 text-[13px] text-[var(--text-subtle)]">Trusted sellers and reviewed inventory.</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
+            <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--primary-soft)] text-[var(--primary)]">
+              <ShieldCheck size={16} />
+            </div>
+            <p className="text-[15px] font-semibold text-[var(--text-strong)]">Wallet-ready checkout</p>
+            <p className="mt-1 text-[13px] text-[var(--text-subtle)]">Use eligible balance directly in cart.</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
+            <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--primary-soft)] text-[var(--primary)]">
+              <Truck size={16} />
+            </div>
+            <p className="text-[15px] font-semibold text-[var(--text-strong)]">Fast shipping nationwide</p>
+            <p className="mt-1 text-[13px] text-[var(--text-subtle)]">Quick delivery and easy returns support.</p>
+          </div>
+        </section>
+      </main>
+
+      <footer className="mt-10 border-t border-[var(--border)] bg-white">
+        <div className="site-container grid gap-8 py-10 md:grid-cols-4">
+          <div>
+            <p className="text-[20px] font-bold text-[var(--text-strong)]" style={{ fontFamily: 'Raleway' }}>
+              Healthi Marketplace
+            </p>
+            <p className="mt-2 text-[14px] text-[var(--text-body)]">
+              Member-first wellness shopping with transparent pricing and wallet integration.
+            </p>
+          </div>
+          <div>
+            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Shop</p>
+            <ul className="mt-3 space-y-2 text-[14px] text-[var(--text-body)]">
+              <li><Link href="/categories/fitness-physical-health">Fitness</Link></li>
+              <li><Link href="/categories/nutrition-supplements">Nutrition</Link></li>
+              <li><Link href="/categories/testing-diagnostics">Diagnostics</Link></li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Support</p>
+            <ul className="mt-3 space-y-2 text-[14px] text-[var(--text-body)]">
+              <li><Link href="/cart">Cart</Link></li>
+              <li><Link href="/checkout">Checkout</Link></li>
+              <li><Link href="/login">Account</Link></li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--text-subtle)]">Contact</p>
+            <p className="mt-3 text-[14px] text-[var(--text-body)]">support@healthi.market</p>
+            <p className="text-[14px] text-[var(--text-body)]">1800-HEALTHI</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

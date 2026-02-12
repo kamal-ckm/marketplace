@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { getStorageProvider } = require('../lib/storageProvider');
-const { requireAuth } = require('../lib/auth');
+const { requireAuth, requireAdmin } = require('../lib/auth');
 
 // Ensure upload directory exists (used by both local storage AND as temp dir for cloud uploads)
 const uploadDir = path.join(__dirname, '../uploads');
@@ -41,7 +41,7 @@ const upload = multer({
 });
 
 // Route: POST /api/upload
-router.post('/', requireAuth, (req, res) => {
+router.post('/', requireAuth, requireAdmin, (req, res) => {
     upload.single('image')(req, res, async (err) => {
         if (err instanceof multer.MulterError) {
             return res.status(400).json({ error: err.message });

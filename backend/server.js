@@ -16,13 +16,17 @@ const authRoutes = require('./routes/auth');
 const customerAuthRoutes = require('./routes/auth-customer');
 const cartRoutes = require('./routes/cart');
 const checkoutRoutes = require('./routes/checkout');
+const adminRoutes = require('./routes/admin'); // Added admin routes
+const taxonomyRoutes = require('./routes/taxonomy');
 const path = require('path');
 
 app.use('/api/auth', authRoutes); // Admin routes
 app.use('/api/auth/customer', customerAuthRoutes); // New customer routes
 app.use('/api/cart', cartRoutes); // Cart routes
 app.use('/api/checkout', checkoutRoutes); // Checkout routes
+app.use('/api/admin', adminRoutes); // Added admin routes
 app.use('/api', productsRoutes); // Mounts routes at /api/products, /api/admin/products
+app.use('/api', taxonomyRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // Static Uploads Folder

@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Loader2, Plus, X, Upload, Check, AlertCircle, Trash2, Package } from 'lucide-react';
+import { Upload, X, ImageIcon, ArrowLeft, Loader2, Save, Globe } from 'lucide-react';
 import { getAuthHeaders } from '@/lib/auth';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
+const CATEGORIES = ['Fitness', 'Nutrition', 'Medical', 'Wellness', 'Personal Care'];
 
 export interface ProductFormData {
     id?: string;
@@ -20,6 +20,9 @@ export interface ProductFormData {
     images: string[];
     category: string;
     status: string;
+    wallet_eligible: boolean;
+    rewards_eligible: boolean;
+    flex_collection_id: string;
 }
 
 interface ProductFormProps {
@@ -27,6 +30,462 @@ interface ProductFormProps {
     mode: 'create' | 'edit';
 }
 
-const CATEGORIES = [\n    'Fitness', 'Nutrition', 'Medical Devices', 'Mental Health', 'Health Screening', 'Wellness Services'\n];
+export default function ProductForm({ initialData, mode }: ProductFormProps) {
+    const router = useRouter();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-export default function ProductForm({ initialData, mode }: ProductFormProps) {\n    const router = useRouter();\n    const [form, setForm] = useState<ProductFormData>(initialData || {\n        name: '',\n        slug: '',\n        description: '',\n        price: '',\n        mrp: '',\n        stock_quantity: '0',\n        images: [],\n        category: CATEGORIES[0],\n        status: 'DRAFT',\n    });\n\n    const [saving, setSaving] = useState(false);\n    const [uploading, setUploading] = useState(false);\n    const [error, setError] = useState('');\n    const [success, setSuccess] = useState(false);\n\n    async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {\n        const file = e.target.files?.[0];\n        if (!file) return;\n\n        setUploading(true);\n        setError('');\n\n        const formData = new FormData();\n        formData.append('image', file);\n\n        try {\n            const res = await fetch(`${API_BASE}/api/upload`, {\n                method: 'POST',\n                headers: {\n                    ...getAuthHeaders(),\n                },\n                body: formData,\n            });\n\n            const data = await res.json();\n            if (res.ok) {\n                setForm(prev => ({ ...prev, images: [...prev.images, data.url] }));\n            } else {\n                setError(data.error || 'Upload failed');\n            }\n        } catch (err) {\n            setError('Failed to connect to server');\n        } finally {\n            setUploading(false);\n        }\n    }\n\n    async function handleSave(publishAfterSave = false) {\n        // Basic Validation\n        if (!form.name || !form.price || !form.mrp) {\n            setError('Name, Price, and MRP are required.');\n            return;\n        }\n\n        setSaving(true);\n        setError('');\n        setSuccess(false);\n\n        try {\n            const payload = {\n                ...form,\n                price: parseFloat(form.price),\n                mrp: parseFloat(form.mrp),\n                stock_quantity: parseInt(form.stock_quantity),\n                status: publishAfterSave ? 'PUBLISHED' : form.status,\n            };\n\n            const url = mode === 'create' ? `${API_BASE}/api/products` : `${API_BASE}/api/products/${form.id}`;\n            const method = mode === 'create' ? 'POST' : 'PUT';\n\n            const res = await fetch(url, {\n                method,\n                headers: {\n                    'Content-Type': 'application/json',\n                    ...getAuthHeaders(),\n                },\n                body: JSON.stringify(payload),\n            });\n\n            const data = await res.json();\n\n            if (res.ok) {\n                setSuccess(true);\n                if (mode === 'create') {\n                    router.push('/admin');\n                } else {\n                    // Update local form state with potentially updated data (like slug)\n                    setForm(prev => ({ ...prev, ...data, \n                        price: String(data.price), \n                        mrp: String(data.mrp), \n                        stock_quantity: String(data.stock_quantity) \n                    }));\n                }\n            } else {\n                setError(data.error || 'Failed to save product.');\n            }\n        } catch (err: any) {\n            setError(err.message || 'Failed to save product.');\n        } finally {\n            setSaving(false);\n        }\n    }\n\n    return (\n        <div className=\"max-w-4xl\">\n            <div className=\"flex items-center justify-between mb-8\">\n                <h1 className=\"text-2xl font-bold text-slate-900\" style={{ fontFamily: 'Raleway' }}>\n                    {mode === 'create' ? 'Add New Product' : 'Edit Product'}\n                </h1>\n                <div className=\"flex items-center gap-3\">\n                    <Button \n                        variant=\"outline\" \n                        onClick={() => router.push('/admin')}\n                        disabled={saving}\n                    >\n                        Cancel\n                    </Button>\n                    <Button \n                        onClick={() => handleSave(false)} \n                        disabled={saving}\n                        className=\"bg-slate-800 hover:bg-slate-900 text-white\"\n                    >\n                        {saving ? <Loader2 className=\"animate-spin mr-2\" size={18} /> : null}\n                        Save Draft\n                    </Button>\n                    <Button \n                        onClick={() => handleSave(true)} \n                        disabled={saving}\n                        className=\"bg-[#00A59B] hover:bg-[#008C84] text-white\"\n                    >\n                        {saving ? <Loader2 className=\"animate-spin mr-2\" size={18} /> : null}\n                        {form.status === 'PUBLISHED' ? 'Update & Sync' : 'Publish Product'}\n                    </Button>\n                </div>\n            </div>\n\n            {error && (\n                <div className=\"bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-6 flex items-center gap-3 animate-in fade-in slide-in-from-top-2\">\n                    <AlertCircle size={20} />\n                    <span className=\"text-sm font-medium\">{error}</span>\n                </div>\n            )}\n\n            {success && (\n                <div className=\"bg-emerald-50 border border-emerald-200 text-emerald-600 px-4 py-3 rounded-xl mb-6 flex items-center gap-3 animate-in fade-in slide-in-from-top-2\">\n                    <Check size={20} />\n                    <span className=\"text-sm font-medium\">Product saved successfully!</span>\n                </div>\n            )}\n\n            <div className=\"grid lg:grid-cols-3 gap-8\">\n                <div className=\"lg:col-span-2 space-y-6\">\n                    <div className=\"bg-white p-6 rounded-2xl border border-slate-200 shadow-sm\">\n                        <h2 className=\"text-sm font-bold text-slate-400 uppercase tracking-widest mb-6\">Basic Information</h2>\n                        <div className=\"space-y-5\">\n                            <div>\n                                <label htmlFor=\"name\" className=\"block text-sm font-semibold text-slate-700 mb-1.5\">Product Name</label>\n                                <input\n                                    id=\"name\"\n                                    type=\"text\"\n                                    value={form.name}\n                                    onChange={e => setForm({ ...form, name: e.target.value })}\n                                    placeholder=\"e.g. Premium Yoga Mat\"\n                                    className=\"w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#00A59B]/20 focus:border-[#00A59B] transition-all\"\n                                />\n                            </div>\n                            <div>\n                                <label htmlFor=\"slug\" className=\"block text-sm font-semibold text-slate-700 mb-1.5\">Custom Slug (Optional)</label>\n                                <input\n                                    id=\"slug\"\n                                    type=\"text\"\n                                    value={form.slug}\n                                    onChange={e => setForm({ ...form, slug: e.target.value })}\n                                    placeholder=\"e.g. custom-url-slug\"\n                                    className=\"w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#00A59B]/20 focus:border-[#00A59B] transition-all text-xs font-mono\"\n                                />\n                            </div>\n                            <div>\n                                <label htmlFor=\"description\" className=\"block text-sm font-semibold text-slate-700 mb-1.5\">Description</label>\n                                <textarea\n                                    id=\"description\"\n                                    rows={6}\n                                    value={form.description}\n                                    onChange={e => setForm({ ...form, description: e.target.value })}\n                                    placeholder=\"Describe the product features, benefits, and specifications...\"\n                                    className=\"w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#00A59B]/20 focus:border-[#00A59B] transition-all\"\n                                />\n                            </div>\n                        </div>\n                    </div>\n\n                    <div className=\"bg-white p-6 rounded-2xl border border-slate-200 shadow-sm\">\n                        <h2 className=\"text-sm font-bold text-slate-400 uppercase tracking-widest mb-6\">Media</h2>\n                        <div className=\"grid grid-cols-4 gap-4\">\n                            {form.images.map((url, idx) => (\n                                <div key={idx} className=\"relative aspect-square rounded-xl overflow-hidden border border-slate-100 group\">\n                                    <img src={url} alt=\"Preview\" className=\"w-full h-full object-cover\" />\n                                    <button \n                                        onClick={() => setForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }))}\n                                        className=\"absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity\"\n                                    >\n                                        <X size={14} />\n                                    </button>\n                                </div>\n                            ))}\n                            <label className=\"aspect-square flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl hover:border-[#00A59B] hover:bg-[#00A59B]/5 cursor-pointer transition-all\">\n                                <input type=\"file\" accept=\"image/*\" onChange={handleUpload} className=\"hidden\" />\n                                {uploading ? <Loader2 size={24} className=\"animate-spin text-[#00A59B]\" /> : <Upload size={24} className=\"text-slate-400\" />}\n                                <span className=\"text-[10px] font-bold text-slate-500 mt-2 uppercase tracking-tighter\">{uploading ? 'Uploading...' : 'Add Image'}</span>\n                            </label>\n                        </div>\n                    </div>\n                </div>\n\n                <div className=\"space-y-6\">\n                    <div className=\"bg-white p-6 rounded-2xl border border-slate-200 shadow-sm\">\n                        <h2 className=\"text-sm font-bold text-slate-400 uppercase tracking-widest mb-6\">Pricing & Inventory</h2>\n                        <div className=\"space-y-4\">\n                            <div>\n                                <label htmlFor=\"price\" className=\"block text-sm font-semibold text-slate-700 mb-1.5\">Selling Price (₹)</label>\n                                <input\n                                    id=\"price\"\n                                    type=\"number\"\n                                    value={form.price}\n                                    onChange={e => setForm({ ...form, price: e.target.value })}\n                                    className=\"w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#00A59B]/20 focus:border-[#00A59B] transition-all font-semibold\"\n                                />\n                            </div>\n                            <div>\n                                <label htmlFor=\"mrp\" className=\"block text-sm font-semibold text-slate-700 mb-1.5\">MRP (₹)</label>\n                                <input\n                                    id=\"mrp\"\n                                    type=\"number\"\n                                    value={form.mrp}\n                                    onChange={e => setForm({ ...form, mrp: e.target.value })}\n                                    className=\"w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#00A59B]/20 focus:border-[#00A59B] transition-all\"\n                                />\n                            </div>\n                            <hr className=\"border-slate-100\" />\n                            <div>\n                                <label htmlFor=\"stock\" className=\"block text-sm font-semibold text-slate-700 mb-1.5\">Stock Quantity</label>\n                                <input\n                                    id=\"stock\"\n                                    type=\"number\"\n                                    value={form.stock_quantity}\n                                    onChange={e => setForm({ ...form, stock_quantity: e.target.value })}\n                                    className=\"w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#00A59B]/20 focus:border-[#00A59B] transition-all\"\n                                />\n                            </div>\n                        </div>\n                    </div>\n\n                    <div className=\"bg-white p-6 rounded-2xl border border-slate-200 shadow-sm\">\n                        <h2 className=\"text-sm font-bold text-slate-400 uppercase tracking-widest mb-6\">Organization</h2>\n                        <div className=\"space-y-4\">\n                            <div>\n                                <label htmlFor=\"category\" className=\"block text-sm font-semibold text-slate-700 mb-1.5\">Category</label>\n                                <select\n                                    id=\"category\"\n                                    value={form.category}\n                                    onChange={e => setForm({ ...form, category: e.target.value })}\n                                    className=\"w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-[#00A59B]/20 transition-all\"\n                                >\n                                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}\n                                </select>\n                            </div>\n                        </div>\n                    </div>\n\n                    <div className=\"bg-slate-50 p-4 rounded-2xl border border-slate-200\">\n                        <div className=\"flex items-center gap-2 mb-2\">\n                            <Package size={16} className=\"text-slate-400\" />\n                            <span className=\"text-xs font-bold text-slate-400 uppercase\">Status</span>\n                        </div>\n                        <div className=\"flex items-center justify-between\">\n                            <span className={`text-sm font-bold ${form.status === 'PUBLISHED' ? 'text-emerald-600' : 'text-slate-500'}`}>\n                                {form.status}\n                            </span>\n                            <div className={`w-2 h-2 rounded-full ${form.status === 'PUBLISHED' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />\n                        </div>\n                    </div>\n                </div>\n            </div>\n        </div>\n    );\n}
+    const [form, setForm] = useState<ProductFormData>(
+        initialData || {
+            name: '',
+            slug: '',
+            description: '',
+            price: '',
+            mrp: '',
+            stock_quantity: '',
+            images: [],
+            category: '',
+            status: 'DRAFT',
+            wallet_eligible: true,
+            rewards_eligible: true,
+            flex_collection_id: '',
+        }
+    );
+
+    const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState('');
+
+    // Auto-generate slug from name (only on create, or if slug is empty)
+    function handleNameChange(name: string) {
+        setForm((prev) => ({
+            ...prev,
+            name,
+            ...(mode === 'create' || !prev.slug
+                ? { slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') }
+                : {}),
+        }));
+    }
+
+    function handleChange(field: keyof ProductFormData, value: string) {
+        setForm((prev) => ({ ...prev, [field]: value }));
+    }
+
+    // Image Upload
+    async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Check type
+        if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+            setError('Only JPG and PNG images are allowed.');
+            return;
+        }
+
+        // Check size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setError('Image must be under 5MB.');
+            return;
+        }
+
+        setUploading(true);
+        setError('');
+
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const res = await fetch(`${API_BASE}/api/upload`, {
+                method: 'POST',
+                headers: { ...getAuthHeaders() }, // Auth required for upload
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Upload failed');
+            }
+
+            const data = await res.json();
+            setForm((prev) => ({ ...prev, images: [...prev.images, data.url] }));
+        } catch (err: any) {
+            setError(err.message || 'Image upload failed.');
+        } finally {
+            setUploading(false);
+            // Reset file input
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    }
+
+    function removeImage(index: number) {
+        setForm((prev) => ({
+            ...prev,
+            images: prev.images.filter((_, i) => i !== index),
+        }));
+    }
+
+    // Save Product
+    async function handleSave(publishAfterSave = false) {
+        // Validation
+        if (!form.name.trim()) return setError('Product name is required.');
+        if (!form.price || parseFloat(form.price) <= 0) return setError('Price must be greater than 0.');
+        if (!form.mrp || parseFloat(form.mrp) <= 0) return setError('MRP must be greater than 0.');
+        if (!form.category) return setError('Category is required.');
+        if (form.stock_quantity && parseInt(form.stock_quantity) < 0) return setError('Stock cannot be negative.');
+
+        setSaving(true);
+        setError('');
+
+        try {
+            const payload = {
+                name: form.name,
+                description: form.description,
+                price: parseFloat(form.price),
+                mrp: parseFloat(form.mrp),
+                stock_quantity: parseInt(form.stock_quantity) || 0,
+                images: form.images,
+                category: form.category,
+                status: publishAfterSave ? 'PUBLISHED' : form.status,
+                wallet_eligible: form.wallet_eligible,
+                rewards_eligible: form.rewards_eligible,
+                flex_collection_id: form.flex_collection_id,
+                ...(mode === 'create' && form.slug ? { slug: form.slug } : {}),
+            };
+
+            let res: Response;
+
+            if (mode === 'create') {
+                res = await fetch(`${API_BASE}/api/products`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders(),
+                    },
+                    body: JSON.stringify(payload),
+                });
+            } else {
+                res = await fetch(`${API_BASE}/api/products/${form.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders(),
+                    },
+                    body: JSON.stringify(payload),
+                });
+            }
+
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Save failed');
+            }
+
+            router.push('/admin');
+            router.refresh();
+        } catch (err: any) {
+            setError(err.message || 'Failed to save product.');
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    return (
+        <div className="max-w-4xl">
+            {/* Back Button */}
+            <button
+                onClick={() => router.push('/admin')}
+                className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-6 transition-colors"
+            >
+                <ArrowLeft size={16} />
+                Back to Products
+            </button>
+
+            {/* Page Title */}
+            <div className="flex items-center justify-between mb-8">
+                <h1 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Raleway, sans-serif' }}>
+                    {mode === 'create' ? 'Add New Product' : `Edit: ${initialData?.name || ''}`}
+                </h1>
+                {mode === 'edit' && (
+                    <span
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${form.status === 'PUBLISHED'
+                            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'
+                            : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/10'
+                            }`}
+                    >
+                        {form.status === 'PUBLISHED' ? '● Published' : '● Draft'}
+                    </span>
+                )}
+            </div>
+
+            {/* Error */}
+            {error && (
+                <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
+                    {error}
+                    <button onClick={() => setError('')} className="text-red-400 hover:text-red-600">
+                        <X size={16} />
+                    </button>
+                </div>
+            )}
+
+            {/* Form Grid */}
+            <div className="space-y-6">
+                {/* Basic Info Card */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6">
+                    <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">Basic Information</h2>
+                    <div className="space-y-4">
+                        {/* Name */}
+                        <div>
+                            <label htmlFor="product-name" className="block text-sm font-medium text-slate-700 mb-1">
+                                Product Name *
+                            </label>
+                            <input
+                                id="product-name"
+                                type="text"
+                                value={form.name}
+                                onChange={(e) => handleNameChange(e.target.value)}
+                                placeholder="e.g. Premium Yoga Mat"
+                                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A59B]/30 focus:border-[#00A59B] transition-colors"
+                            />
+                        </div>
+
+                        {/* Slug */}
+                        <div>
+                            <label htmlFor="product-slug" className="block text-sm font-medium text-slate-700 mb-1">
+                                URL Slug
+                            </label>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-slate-400">/products/</span>
+                                <input
+                                    id="product-slug"
+                                    type="text"
+                                    value={form.slug}
+                                    onChange={(e) => handleChange('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                                    placeholder="premium-yoga-mat"
+                                    className="flex-1 px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A59B]/30 focus:border-[#00A59B] transition-colors"
+                                    readOnly={mode === 'edit'}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Description */}
+                        <div>
+                            <label htmlFor="product-description" className="block text-sm font-medium text-slate-700 mb-1">
+                                Description
+                            </label>
+                            <textarea
+                                id="product-description"
+                                value={form.description}
+                                onChange={(e) => handleChange('description', e.target.value)}
+                                placeholder="Describe your product..."
+                                rows={5}
+                                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A59B]/30 focus:border-[#00A59B] transition-colors resize-none"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Pricing Card */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6">
+                    <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">Pricing & Inventory</h2>
+                    <div className="grid grid-cols-3 gap-4">
+                        <div>
+                            <label htmlFor="product-price" className="block text-sm font-medium text-slate-700 mb-1">Selling Price (₹) *</label>
+                            <input
+                                id="product-price"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={form.price}
+                                onChange={(e) => handleChange('price', e.target.value)}
+                                placeholder="1499"
+                                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A59B]/30 focus:border-[#00A59B] transition-colors"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="product-mrp" className="block text-sm font-medium text-slate-700 mb-1">MRP (₹) *</label>
+                            <input
+                                id="product-mrp"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={form.mrp}
+                                onChange={(e) => handleChange('mrp', e.target.value)}
+                                placeholder="2000"
+                                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A59B]/30 focus:border-[#00A59B] transition-colors"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="product-stock" className="block text-sm font-medium text-slate-700 mb-1">Stock Quantity</label>
+                            <input
+                                id="product-stock"
+                                type="number"
+                                min="0"
+                                value={form.stock_quantity}
+                                onChange={(e) => handleChange('stock_quantity', e.target.value)}
+                                placeholder="100"
+                                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A59B]/30 focus:border-[#00A59B] transition-colors"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Category Card */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6">
+                    <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">Category</h2>
+                    <div>
+                        <label htmlFor="product-category" className="block text-sm font-medium text-slate-700 mb-1">Category *</label>
+                        <select
+                            id="product-category"
+                            value={form.category}
+                            onChange={(e) => handleChange('category', e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00A59B]/30 focus:border-[#00A59B] transition-colors"
+                        >
+                            <option value="">Select a category</option>
+                            {CATEGORIES.map((cat) => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Images Card */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6">
+                    <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">Images</h2>
+
+                    {/* Image Grid */}
+                    <div className="grid grid-cols-4 gap-4 mb-4">
+                        {form.images.map((url, index) => (
+                            <div key={index} className="relative group aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+                                <img src={url} alt={`Product ${index + 1}`} className="w-full h-full object-cover" />
+                                <button
+                                    onClick={() => removeImage(index)}
+                                    className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <X size={12} />
+                                </button>
+                                {index === 0 && (
+                                    <span className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full font-medium">
+                                        Primary
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+
+                        {/* Upload Button */}
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                            className="aspect-square rounded-lg border-2 border-dashed border-slate-300 hover:border-[#00A59B] flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-[#00A59B] transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                            {uploading ? (
+                                <Loader2 size={20} className="animate-spin" />
+                            ) : (
+                                <>
+                                    <Upload size={20} />
+                                    <span className="text-xs font-medium">Upload</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                    />
+                    <p className="text-xs text-slate-400">JPG or PNG, max 5MB. First image is the primary display image.</p>
+                </div>
+
+                {/* Benefits Card */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6">
+                    <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">Benefits & Eligibility</h2>
+                    <div className="grid grid-cols-2 gap-6 mb-6">
+                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                            <div>
+                                <h3 className="text-sm font-medium text-slate-900">Wallet Eligible</h3>
+                                <p className="text-xs text-slate-500">Allow customers to pay using health wallet</p>
+                            </div>
+                            <input
+                                type="checkbox"
+                                checked={form.wallet_eligible}
+                                onChange={(e) => setForm(prev => ({ ...prev, wallet_eligible: e.target.checked }))}
+                                className="w-5 h-5 accent-[#00A59B]"
+                            />
+                        </div>
+                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                            <div>
+                                <h3 className="text-sm font-medium text-slate-900">Rewards Eligible</h3>
+                                <p className="text-xs text-slate-500">Allow customers to redeem reward points</p>
+                            </div>
+                            <input
+                                type="checkbox"
+                                checked={form.rewards_eligible}
+                                onChange={(e) => setForm(prev => ({ ...prev, rewards_eligible: e.target.checked }))}
+                                className="w-5 h-5 accent-[#00A59B]"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label htmlFor="flex-collection" className="block text-sm font-medium text-slate-700 mb-1">Flex Collection ID</label>
+                        <input
+                            id="flex-collection"
+                            type="text"
+                            value={form.flex_collection_id}
+                            onChange={(e) => handleChange('flex_collection_id', e.target.value)}
+                            placeholder="e.g. FLEX_FITNESS_001"
+                            className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A59B]/30 focus:border-[#00A59B] transition-colors"
+                        />
+                        <p className="text-[10px] text-slate-400 mt-1">Links this product to specific employer-sponsored benefit rules.</p>
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center justify-between bg-white rounded-xl border border-slate-200 p-6">
+                    <button
+                        onClick={() => router.push('/admin')}
+                        className="px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <div className="flex items-center gap-3">
+                        {/* Save as Draft */}
+                        <button
+                            onClick={() => handleSave(false)}
+                            disabled={saving}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                            {mode === 'create' ? 'Save as Draft' : 'Save'}
+                        </button>
+
+                        {/* Publish */}
+                        {(mode === 'edit' && form.status !== 'PUBLISHED') || mode === 'create' ? (
+                            <button
+                                onClick={() => handleSave(true)}
+                                disabled={saving}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-[#00A59B] hover:bg-[#008C84] text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
+                            >
+                                {saving ? <Loader2 size={16} className="animate-spin" /> : <Globe size={16} />}
+                                Publish
+                            </button>
+                        ) : null}
+
+                        {/* Unpublish */}
+                        {mode === 'edit' && form.status === 'PUBLISHED' ? (
+                            <button
+                                onClick={() => {
+                                    setForm((prev) => ({ ...prev, status: 'DRAFT' }));
+                                    handleSave(false);
+                                }}
+                                disabled={saving}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-sm font-medium transition-colors ring-1 ring-amber-600/20 disabled:opacity-50"
+                            >
+                                Unpublish
+                            </button>
+                        ) : null}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

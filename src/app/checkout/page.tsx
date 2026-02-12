@@ -6,19 +6,45 @@ import { useCart } from '@/lib/cart-context';
 import { useCustomerAuth, getCustomerAuthHeaders } from '@/lib/auth-customer';
 import { formatCurrency } from '@/lib/utils';
 import { Header } from '@/components/layout/Header';
-import { Loader2, ArrowRight, User, MapPin, Truck, Shield } from 'lucide-react';
+import { Loader2, ArrowRight, User, MapPin, Truck, Shield, ChevronRight, Mail, CreditCard, Search, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import Link from 'next/link';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+export const dynamic = 'force-dynamic';
 
 export default function CheckoutPage() {
     const router = useRouter();
     const { items, summary, loading: cartLoading, refreshCart } = useCart();
-    const { user, isAuthenticated, isLoading: authLoading } = useCustomerAuth();
+    const { user, isAuthenticated, isLoading: authLoading, refreshUser } = useCustomerAuth();
 
-    const [address, setAddress] = useState('');
+    const [workEmail, setWorkEmail] = useState('');
+    const [country, setCountry] = useState('India');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [addressLine1, setAddressLine1] = useState('');
+    const [addressLine2, setAddressLine2] = useState('');
+    const [city, setCity] = useState('');
+    const [stateName, setStateName] = useState('');
+    const [pinCode, setPinCode] = useState('');
+    const [phone, setPhone] = useState('');
     const [placing, setPlacing] = useState(false);
     const [error, setError] = useState('');
+    const [beneficiaryName, setBeneficiaryName] = useState('Self');
+    const [beneficiaryType, setBeneficiaryType] = useState('Employee');
+    const [requestedWallet, setRequestedWallet] = useState(0);
+    const [requestedRewards, setRequestedRewards] = useState(0);
+
+    // Pre-calculate eligibility
+    const walletEligibleAmount = items.reduce((sum, item) => item.wallet_eligible ? sum + (parseFloat(item.price) * item.quantity) : sum, 0);
+    const rewardsEligibleAmount = items.reduce((sum, item) => item.rewards_eligible ? sum + (parseFloat(item.price) * item.quantity) : sum, 0);
+
+    const maxWalletPossible = Math.min(walletEligibleAmount, user?.wallet_balance || 0);
+    const maxRewardsPossible = Math.min(rewardsEligibleAmount, user?.rewards_balance || 0);
+
+    const totalAmount = summary.totalAmount;
+    const appliedWalletAmount = Math.min(requestedWallet, maxWalletPossible, totalAmount);
+    const appliedRewardsAmount = Math.min(requestedRewards, maxRewardsPossible, totalAmount - appliedWalletAmount);
 
     useEffect(() => {
         if (!authLoading && !isAuthenticated) {
@@ -26,19 +52,36 @@ export default function CheckoutPage() {
         }
     }, [authLoading, isAuthenticated, router]);
 
-    if (authLoading || cartLoading || !user) {
-        return (
-            <div className="flex justify-center py-20">
-                <Loader2 size={40} className="animate-spin text-[#00A59B]" />
-            </div>
-        );
-    }
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        setBeneficiaryName(params.get('beneficiaryName') || user?.name || 'Self');
+        setBeneficiaryType(params.get('beneficiaryType') || 'Employee');
+        setRequestedWallet(parseFloat(params.get('wallet') || '0'));
+        setRequestedRewards(parseFloat(params.get('rewards') || '0'));
+    }, [user?.name]);
+
+    const cashPayable = Math.max(0, summary.totalAmount - appliedWalletAmount - appliedRewardsAmount);
 
     async function handlePlaceOrder() {
-        if (!address.trim()) {
-            setError('Please enter a shipping address.');
+        const finalWorkEmail = workEmail.trim() || user?.email || '';
+        if (!finalWorkEmail) {
+            setError('Please enter your work email.');
             return;
         }
+        if (!addressLine1.trim() || !city.trim() || !stateName.trim() || !pinCode.trim() || !phone.trim()) {
+            setError('Please complete all required billing address fields.');
+            return;
+        }
+
+        const composedAddress = [
+            `${firstName} ${lastName}`.trim(),
+            addressLine1.trim(),
+            addressLine2.trim(),
+            `${city.trim()}, ${stateName.trim()} ${pinCode.trim()}`.trim(),
+            country.trim(),
+            `Phone: ${phone.trim()}`
+        ].filter(Boolean).join(', ');
 
         setPlacing(true);
         setError('');
@@ -50,7 +93,14 @@ export default function CheckoutPage() {
                     'Content-Type': 'application/json',
                     ...getCustomerAuthHeaders(),
                 },
-                body: JSON.stringify({ shippingAddress: address }),
+                body: JSON.stringify({
+                    shippingAddress: composedAddress,
+                    walletAmount: appliedWalletAmount,
+                    rewardsAmount: appliedRewardsAmount,
+                    beneficiary: beneficiaryType,
+                    workEmail: finalWorkEmail,
+                    paymentMethod: 'RAZORPAY'
+                }),
             });
 
             const data = await res.json();
@@ -61,9 +111,10 @@ export default function CheckoutPage() {
                 return;
             }
 
-            // Success! Refresh cart (to empty it) and redirect
+            // Success! 
             await refreshCart();
-            router.push(`/orders/${data.orderId}`);
+            await refreshUser(); // Update wallet balance in header
+            router.push(`/orders/${data.orderId}/success`);
 
         } catch (err) {
             setError('Network error. Please try again.');
@@ -71,7 +122,7 @@ export default function CheckoutPage() {
         }
     }
 
-    if (cartLoading || !user) {
+    if (authLoading || cartLoading || !user) {
         return (
             <div className="flex justify-center py-20">
                 <Loader2 size={40} className="animate-spin text-[#00A59B]" />
@@ -80,114 +131,270 @@ export default function CheckoutPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-[var(--background)] pb-20">
             <Header />
 
-            <div className="container mx-auto px-4 py-8">
-                <h1 className="text-3xl font-bold text-slate-900 mb-8" style={{ fontFamily: 'Raleway' }}>
-                    Checkout
-                </h1>
+            <div className="max-w-[1280px] mx-auto px-4 py-12">
+                <div className="flex items-center gap-2 text-[14px] text-[#717182] mb-8">
+                    <Link href="/cart" className="hover:text-[#00A59B]">Shopping Cart</Link>
+                    <ChevronRight size={14} className="text-slate-300" />
+                    <span className="text-[#0a0a0a] font-medium">Checkout</span>
+                </div>
 
-                <div className="grid lg:grid-cols-3 gap-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+                    <h1 className="text-[36px] md:text-[48px] font-black text-[#0a0a0a] leading-tight" style={{ fontFamily: 'Raleway' }}>
+                        Payment
+                    </h1>
+
+                    {/* Checkout Progress Stepper (Mix Theme Style) */}
+                    <div className="flex items-center gap-4">
+                        {[
+                            { step: 1, label: 'Cart', completed: true },
+                            { step: 2, label: 'Payment', active: true }
+                        ].map((s, i) => (
+                            <React.Fragment key={s.label}>
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-black transition-all ${s.active || s.completed ? 'bg-[#00a59b] text-white shadow-lg shadow-[#00a59b]/20' : 'bg-gray-100 text-slate-400'}`}>
+                                        {s.step}
+                                    </div>
+                                    <span className={`text-[12px] font-black uppercase tracking-widest ${s.active || s.completed ? 'text-[#0a0a0a]' : 'text-slate-400'}`}>
+                                        {s.label}
+                                    </span>
+                                </div>
+                                {i < 1 && <div className="w-12 h-px bg-gray-200 hidden sm:block" />}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="grid lg:grid-cols-12 gap-12">
                     {/* Left: Form */}
-                    <div className="lg:col-span-2 space-y-6">
-
-                        {/* 1. Customer Info */}
-                        <div className="bg-white p-6 rounded-xl border border-slate-200">
-                            <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 mb-4">
-                                <User size={20} className="text-[#00A59B]" />
-                                Customer Details
-                            </h2>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
-                                    <input type="text" value={user.name} disabled className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-500" />
+                    <div className="lg:col-span-8 space-y-8">
+                        {/* 1. Contact */}
+                        <div className="bg-[#fcfdfd] border border-gray-100 p-8 rounded-[32px] shadow-sm">
+                            <h2 className="flex items-center gap-3 text-[18px] font-black text-[#0a0a0a] mb-8 uppercase tracking-[0.2em]">
+                                <div className="w-8 h-8 rounded-lg bg-[#00a59b] flex items-center justify-center text-white">
+                                    <Mail size={16} />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                                    <input type="text" value={user.email} disabled className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-500" />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 2. Shipping Address */}
-                        <div className="bg-white p-6 rounded-xl border border-slate-200">
-                            <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 mb-4">
-                                <MapPin size={20} className="text-[#00A59B]" />
-                                Shipping Address
+                                1. Contact
                             </h2>
-                            <textarea
-                                value={address}
-                                onChange={(e) => setAddress(e.target.value)}
-                                placeholder="Enter your full shipping address..."
-                                rows={3}
-                                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#00A59B] focus:border-[#00A59B] outline-none transition-all"
+                            <label className="block text-[13px] font-bold text-[#0a0a0a] mb-2">Work Email</label>
+                            <input
+                                type="email"
+                                value={workEmail}
+                                onChange={(e) => setWorkEmail(e.target.value)}
+                                placeholder={user?.email || 'Enter your work email'}
+                                className="w-full bg-white border border-gray-200 rounded-[14px] px-4 py-3 focus:border-[#00a59b] focus:ring-0 outline-none transition-all text-[#0a0a0a] text-[15px]"
                             />
-                            {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
                         </div>
 
-                        {/* 3. Payment Method */}
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 opacity-60">
-                            <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 mb-2">
-                                Payment Method
+                        {/* 2. Beneficiary */}
+                        <div className="bg-[#fcfdfd] border border-gray-100 p-8 rounded-[32px] shadow-sm">
+                            <h2 className="flex items-center gap-3 text-[18px] font-black text-[#0a0a0a] mb-8 uppercase tracking-[0.2em]">
+                                <div className="w-8 h-8 rounded-lg bg-[#00a59b] flex items-center justify-center text-white">
+                                    <User size={16} />
+                                </div>
+                                2. Beneficiary
                             </h2>
-                            <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                                <div className="w-4 h-4 bg-[#00A59B] rounded-full" />
-                                <span className="font-medium text-slate-700">Cash / Pay on Delivery</span>
+                            <div className="mb-5 rounded-[12px] border border-gray-100 bg-white p-4">
+                                <p className="text-[14px] font-bold text-[#0a0a0a]">{beneficiaryName}</p>
                             </div>
-                            <p className="text-xs text-slate-500 mt-2 pl-1">
-                                Only COD available for MVP. Wallet integration coming soon.
-                            </p>
+                            <Link
+                                href="/cart"
+                                className="text-[13px] font-bold hover:underline"
+                                style={{ color: '#2563eb' }}
+                            >
+                                Edit in cart
+                            </Link>
                         </div>
 
+                        {/* 3. Billing Address */}
+                        <div className="bg-[#fcfdfd] border border-gray-100 p-8 rounded-[32px] shadow-sm">
+                            <h2 className="flex items-center gap-3 text-[18px] font-black text-[#0a0a0a] mb-8 uppercase tracking-[0.2em] relative">
+                                <div className="w-8 h-8 rounded-lg bg-[#00a59b] flex items-center justify-center text-white">
+                                    <MapPin size={16} />
+                                </div>
+                                3. Billing Address
+                            </h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-[12px] text-[#717182] mb-1">Country/Region</label>
+                                    <select
+                                        value={country}
+                                        onChange={(e) => setCountry(e.target.value)}
+                                        className="w-full h-[52px] rounded-[12px] border border-gray-200 bg-white px-4 text-[15px] text-[#0a0a0a] outline-none focus:border-[#00a59b]"
+                                    >
+                                        <option>India</option>
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <input
+                                        value={firstName}
+                                        onChange={(e) => setFirstName(e.target.value)}
+                                        placeholder="First name (optional)"
+                                        className="h-[52px] rounded-[12px] border border-gray-200 bg-white px-4 text-[15px] text-[#0a0a0a] outline-none focus:border-[#00a59b]"
+                                    />
+                                    <input
+                                        value={lastName}
+                                        onChange={(e) => setLastName(e.target.value)}
+                                        placeholder="Last name"
+                                        className="h-[52px] rounded-[12px] border border-gray-200 bg-white px-4 text-[15px] text-[#0a0a0a] outline-none focus:border-[#00a59b]"
+                                    />
+                                </div>
+                                <div className="relative">
+                                    <input
+                                        value={addressLine1}
+                                        onChange={(e) => setAddressLine1(e.target.value)}
+                                        placeholder="Address"
+                                        className="h-[52px] w-full rounded-[12px] border border-gray-200 bg-white px-4 pr-10 text-[15px] text-[#0a0a0a] outline-none focus:border-[#00a59b]"
+                                    />
+                                    <Search size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#717182]" />
+                                </div>
+                                <input
+                                    value={addressLine2}
+                                    onChange={(e) => setAddressLine2(e.target.value)}
+                                    placeholder="Apartment, suite, etc. (optional)"
+                                    className="h-[52px] w-full rounded-[12px] border border-gray-200 bg-white px-4 text-[15px] text-[#0a0a0a] outline-none focus:border-[#00a59b]"
+                                />
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <input
+                                        value={city}
+                                        onChange={(e) => setCity(e.target.value)}
+                                        placeholder="City"
+                                        className="h-[52px] rounded-[12px] border border-gray-200 bg-white px-4 text-[15px] text-[#0a0a0a] outline-none focus:border-[#00a59b]"
+                                    />
+                                    <input
+                                        value={stateName}
+                                        onChange={(e) => setStateName(e.target.value)}
+                                        placeholder="State"
+                                        className="h-[52px] rounded-[12px] border border-gray-200 bg-white px-4 text-[15px] text-[#0a0a0a] outline-none focus:border-[#00a59b]"
+                                    />
+                                    <input
+                                        value={pinCode}
+                                        onChange={(e) => setPinCode(e.target.value)}
+                                        placeholder="PIN code"
+                                        className="h-[52px] rounded-[12px] border border-gray-200 bg-white px-4 text-[15px] text-[#0a0a0a] outline-none focus:border-[#00a59b]"
+                                    />
+                                </div>
+                                <div className="relative">
+                                    <input
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        placeholder="Enter 10 digit valid mobile number"
+                                        className="h-[52px] w-full rounded-[12px] border border-gray-200 bg-white px-4 pr-10 text-[15px] text-[#0a0a0a] outline-none focus:border-[#00a59b]"
+                                    />
+                                    <HelpCircle size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#717182]" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 4. Payment Method */}
+                        <div className="bg-[#fcfdfd] border border-gray-100 p-8 rounded-[32px] shadow-sm">
+                            <h2 className="flex items-center gap-3 text-[18px] font-black text-[#0a0a0a] mb-6 uppercase tracking-[0.2em]">
+                                <div className="w-8 h-8 rounded-lg bg-[#00a59b] flex items-center justify-center text-white">
+                                    <CreditCard size={16} />
+                                </div>
+                                4. Payment Method
+                            </h2>
+                            <div className="rounded-[14px] border border-[#d9efec] bg-[#f4fbfa] p-4 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[14px] font-bold text-[#0a0a0a]">Razorpay Secure</p>
+                                    <p className="text-[12px] text-[#717182]">UPI, Cards, Netbanking, Wallets</p>
+                                </div>
+                                <span className="text-[12px] font-bold text-[#00a59b]">Default</span>
+                            </div>
+                            {error && (
+                                <div className="mt-4 p-4 bg-[#fc3535]/5 border border-[#fc3535]/10 rounded-[16px] text-[#fc3535] text-[13px] font-bold flex items-center gap-3">
+                                    <div className="w-2 h-2 rounded-full bg-[#fc3535]" />
+                                    {error}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Right: Summary */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 sticky top-24">
-                            <h2 className="text-lg font-bold text-slate-900 mb-6">Order Summary</h2>
+                    <div className="lg:col-span-4">
+                        <div className="sticky top-24 rounded-[24px] border border-[var(--border)] bg-white p-8 shadow-sm">
+                            <h2 className="mb-8 text-[20px] font-black uppercase tracking-[0.1em] text-[var(--text-strong)]" style={{ fontFamily: 'Raleway' }}>
+                                Review Order
+                            </h2>
 
-                            <div className="max-h-60 overflow-y-auto space-y-3 mb-6 pr-2 custom-scrollbar">
+                            {/* Item List in Summary */}
+                            <div className="mb-10 space-y-5 border-b border-[var(--border)] pb-10">
                                 {items.map((item) => (
-                                    <div key={item.id} className="flex justify-between text-sm">
-                                        <div className="flex-1 pr-2">
-                                            <span className="text-slate-700 font-medium">{item.name}</span>
-                                            <span className="text-slate-400 block text-xs">Qty: {item.quantity}</span>
+                                    <div key={item.id} className="flex gap-4">
+                                        <div className="w-14 h-14 bg-white rounded-xl p-2 flex-shrink-0 relative">
+                                            <img src={item.images[0]} alt={item.name} className="w-full h-full object-contain" />
+                                            <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-[#00a59b] text-[10px] font-black text-white">
+                                                {item.quantity}
+                                            </span>
                                         </div>
-                                        <span className="font-medium text-slate-900 text-right w-20">
-                                            {formatCurrency(parseFloat(item.price) * item.quantity)}
-                                        </span>
+                                        <div className="flex-1">
+                                            <p className="line-clamp-2 text-[13px] font-bold text-[var(--text-strong)]">{item.name}</p>
+                                            <p className="mt-1 text-[12px] font-bold text-[var(--text-subtle)]">₹{parseFloat(item.price).toLocaleString('en-IN')}</p>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
 
-                            <div className="border-t border-slate-100 pt-4 space-y-2 mb-6">
-                                <div className="flex justify-between text-slate-600">
-                                    <span>Subtotal</span>
+                            <div className="space-y-4 mb-10">
+                                <div className="flex justify-between font-medium text-[var(--text-subtle)]">
+                                    <span>Items Subtotal</span>
                                     <span>{formatCurrency(summary.totalAmount)}</span>
                                 </div>
-                                <div className="flex justify-between text-slate-600">
-                                    <span>Delivery</span>
-                                    <span className="text-green-600 font-medium">Free</span>
+                                {appliedWalletAmount > 0 && (
+                                    <div className="flex justify-between text-[#00a59b] font-bold">
+                                        <span>Wallet Applied</span>
+                                        <span>-{formatCurrency(appliedWalletAmount)}</span>
+                                    </div>
+                                )}
+                                {appliedRewardsAmount > 0 && (
+                                    <div className="flex justify-between text-amber-500 font-bold">
+                                        <span>Rewards Applied</span>
+                                        <span>-{appliedRewardsAmount}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between font-medium text-[var(--text-subtle)]">
+                                    <span>Logistics</span>
+                                    <span className="text-[#00a59b]">FREE</span>
                                 </div>
-                                <div className="border-t border-slate-100 pt-2 flex justify-between font-bold text-lg text-slate-900">
-                                    <span>Total</span>
-                                    <span>{formatCurrency(summary.totalAmount)}</span>
+                                <div className="flex items-center justify-between border-t border-[var(--border)] pt-8">
+                                    <span className="text-[16px] font-bold text-[var(--text-strong)]">Total Payable</span>
+                                    <div className="text-right">
+                                        <span className="text-[32px] font-black text-[#00A59B] block leading-none">
+                                            {formatCurrency(cashPayable)}
+                                        </span>
+                                        {cashPayable > 0 && (
+                                            <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-[var(--text-subtle)]">Pay on delivery</p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
-                            <button
+                            <Button
                                 onClick={handlePlaceOrder}
                                 disabled={placing}
-                                className="w-full flex items-center justify-center gap-2 bg-[#00A59B] hover:bg-[#008C84] text-white py-3.5 rounded-xl font-semibold transition-colors shadow-lg shadow-[#00A59B]/20 disabled:opacity-70 disabled:cursor-not-allowed"
+                                className="w-full h-[64px] bg-[#00a59b] hover:bg-[#008c84] text-white rounded-[18px] font-black transition-all disabled:opacity-50 flex items-center justify-center gap-3 text-[18px] group shadow-xl shadow-[#00a59b]/20"
                             >
-                                {placing ? <Loader2 size={18} className="animate-spin" /> : <Shield size={18} />}
-                                {placing ? 'Placing Order...' : 'Confirm Order'}
-                            </button>
+                                {placing ? (
+                                    <Loader2 size={24} className="animate-spin" />
+                                ) : (
+                                    <>
+                                        Pay Now
+                                        <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                                    </>
+                                )}
+                            </Button>
 
-                            <div className="flex items-center justify-center gap-2 mt-4 text-xs text-slate-400">
-                                <Truck size={12} />
-                                <span>Estimated delivery: 3-5 days</span>
+                            <div className="mt-8 space-y-4">
+                                <div className="flex items-center gap-4 text-[12px] font-medium text-[var(--text-subtle)]">
+                                    <Shield size={16} className="text-[#00a59b]" />
+                                    <span>End-to-end encrypted protocol</span>
+                                </div>
+                                <div className="flex items-center gap-4 text-[12px] font-medium text-[var(--text-subtle)]">
+                                    <Truck size={16} className="text-[#00a59b]" />
+                                    <span>Express 48-hour delivery</span>
+                                </div>
                             </div>
                         </div>
                     </div>

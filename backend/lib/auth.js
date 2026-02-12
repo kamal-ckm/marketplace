@@ -38,4 +38,24 @@ function requireAuth(req, res, next) {
     }
 }
 
-module.exports = { generateToken, requireAuth, JWT_SECRET };
+function requireRole(roles) {
+    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+
+    return (req, res, next) => {
+        if (!req.user || !req.user.role) {
+            return res.status(403).json({ error: 'Access denied.' });
+        }
+
+        if (!allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({ error: 'Insufficient permissions.' });
+        }
+
+        next();
+    };
+}
+
+function requireAdmin(req, res, next) {
+    return requireRole(['admin', 'super_admin'])(req, res, next);
+}
+
+module.exports = { generateToken, requireAuth, requireRole, requireAdmin, JWT_SECRET };

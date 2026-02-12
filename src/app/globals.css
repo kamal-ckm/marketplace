@@ -1,78 +1,59 @@
 @import "tailwindcss";
 
-
 :root {
-  /* Brand Colors from Figma */
-  --primary: #00A59B;
-  --primary-dark: #008C84;
-  --primary-light: #00BFB3;
+  --primary: #00a59b;
+  --primary-dark: #008c84;
+  --primary-soft: #eaf8f6;
+  --accent-gold: #ffc600;
 
-  /* Accent Colors */
-  --accent-gold: #FFC600;
-  --accent-blue: #0031A7;
-  --accent-blue-light: #0057BF;
+  --background: #f6f7f5;
+  --surface: #ffffff;
+  --surface-alt: #f1f3f1;
+  --text-strong: #202427;
+  --text-body: #475467;
+  --text-subtle: #667085;
+  --border: #e4e7ec;
+  --ring: rgba(0, 165, 155, 0.28);
 
-  /* Neutrals */
-  --background: #FFFFFF;
-  --background-gray: #F5F5F5;
-  --foreground: #1A1A1A;
-  --foreground-secondary: #666666;
-
-  /* Semantic Colors */
-  --success: #22C55E;
-  --warning: #EAB308;
-  --error: #EF4444;
-  --info: #3B82F6;
-
-  /* Wallet Colors */
-  --wallet-active: #22C55E;
-  --rewards-active: #FFC600;
+  --font-heading: "Raleway", system-ui, sans-serif;
+  --font-body: "Source Sans 3", system-ui, sans-serif;
 }
 
 @theme inline {
   --color-primary-*: initial;
-  --color-primary-50: #E6F7F6;
-  --color-primary-100: #CCEFED;
-  --color-primary-200: #99DFDB;
-  --color-primary-300: #66CFC9;
-  --color-primary-400: #33BFB7;
-  --color-primary-500: #00A59B;
-  --color-primary-600: #008C84;
-  --color-primary-700: #00736D;
-  --color-primary-800: #005A56;
-  --color-primary-900: #00413F;
+  --color-primary-50: #eefaf9;
+  --color-primary-100: #d8f2ef;
+  --color-primary-200: #b2e5df;
+  --color-primary-300: #8ad8cf;
+  --color-primary-400: #5dcabc;
+  --color-primary-500: #00a59b;
+  --color-primary-600: #008c84;
+  --color-primary-700: #006e68;
+  --color-primary-800: #005450;
+  --color-primary-900: #003935;
 
-  --color-accent-*: initial;
-  --color-accent-gold: #FFC600;
-  --color-accent-blue: #0031A7;
+  --color-accent-gold: #ffc600;
 
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-foreground: var(--text-strong);
 
-  /* Typography */
-  --font-heading: 'Raleway', system-ui, sans-serif;
-  --font-body: 'Source Sans 3', system-ui, sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0F172A;
-    --background-gray: #1E293B;
-    --foreground: #F8FAFC;
-    --foreground-secondary: #94A3B8;
-  }
+  --font-heading: var(--font-heading);
+  --font-body: var(--font-body);
 }
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
+  margin: 0;
   background: var(--background);
-  color: var(--foreground);
-  font-family: 'Source Sans 3', system-ui, sans-serif;
+  color: var(--text-strong);
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -83,75 +64,53 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'Raleway', system-ui, sans-serif;
-  font-weight: 700;
+  font-family: var(--font-heading);
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+button {
+  font: inherit;
 }
 
-::-webkit-scrollbar-track {
-  background: var(--background-gray);
+img {
+  max-width: 100%;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--primary);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--primary-dark);
-}
-
-/* Focus styles */
 :focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
-/* Button base styles */
-.btn {
-  @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 active:scale-95;
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
 
-.btn-primary {
-  @apply bg-primary-500 text-white hover:bg-primary-600 shadow-md hover:shadow-lg;
+::-webkit-scrollbar-track {
+  background: var(--surface-alt);
 }
 
-.btn-secondary {
-  @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+::-webkit-scrollbar-thumb {
+  background: #c9d4d1;
+  border-radius: 999px;
 }
 
-.btn-outline {
-  @apply border-2 border-primary-500 text-primary-500 hover:bg-primary-50;
+::-webkit-scrollbar-thumb:hover {
+  background: #aebbb7;
 }
 
-/* Card styles */
-.card {
-  @apply bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow;
+.site-container {
+  max-width: 1240px;
+  margin-inline: auto;
+  padding-inline: 16px;
 }
 
-/* Badge styles */
-.badge {
-  @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
-}
-
-.badge-wallet {
-  @apply bg-green-100 text-green-800;
-}
-
-.badge-sale {
-  @apply bg-red-100 text-red-800;
-}
-
-.badge-new {
-  @apply bg-blue-100 text-blue-800;
+.site-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
 }

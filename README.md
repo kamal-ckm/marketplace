@@ -73,6 +73,30 @@ npm start
 3. Run the development server: `npm run dev`
 4. Open [http://localhost:3000](http://localhost:3000)
 
+## 🔐 Healthi Program Validation (External)
+
+This marketplace assumes employer program setup is managed in Healthi and validates wallet/reward spend externally during checkout when configured.
+
+### Environment Variables
+
+- `HEALTHI_VALIDATE_URL`  
+  Checkout-time validation endpoint provided by Healthi.
+- `HEALTHI_API_KEY`  
+  Optional API key sent as `x-api-key`.
+- `HEALTHI_ENFORCEMENT_MODE`  
+  `strict` (default) or `permissive`.
+  - `strict`: block checkout if Healthi validation is unavailable/invalid.
+  - `permissive`: log failure and fallback to local eligibility rules.
+- `HEALTHI_TIMEOUT_MS`  
+  Optional timeout for Healthi validation call. Default: `4000`.
+
+### Checkout Behavior
+
+1. Marketplace computes local eligibility from product flags (`wallet_eligible`, `rewards_eligible`).
+2. If `HEALTHI_VALIDATE_URL` is configured, marketplace sends cart + requested wallet/rewards to Healthi.
+3. Healthi returns approved split (`wallet`, `rewards`, `cash`).
+4. Marketplace enforces the approved split and places the order.
+
 ## 📁 Project Structure
 
 ```

@@ -10,8 +10,8 @@ const bcrypt = require('bcrypt');
         const hash = await bcrypt.hash(password, 10);
 
         await db.query(`
-            INSERT INTO users (email, password_hash, name, wallet_balance, rewards_balance)
-            VALUES ($1, $2, $3, 12500.00, 850)
+            INSERT INTO users (email, password_hash, name, wallet_balance, rewards_balance, employer_id, employer_name)
+            VALUES ($1, $2, $3, 12500.00, 850, 'EMP_GOOGLE', 'Google India')
             ON CONFLICT (email) DO UPDATE SET password_hash = $2
         `, [email, hash, 'Test Customer']);
 

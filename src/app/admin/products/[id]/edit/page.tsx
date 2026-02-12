@@ -20,7 +20,7 @@ export default function EditProductPage() {
         async function fetchProduct() {
             try {
                 const res = await fetch(`${API_BASE}/api/admin/products/${productId}`, {
-                    headers: { ...getAuthHeaders() },
+                    headers: getAuthHeaders() as HeadersInit,
                 });
                 if (!res.ok) {
                     throw new Error('Product not found');
@@ -36,10 +36,17 @@ export default function EditProductPage() {
                     stock_quantity: String(data.stock_quantity),
                     images: data.images || [],
                     category: data.category,
+                    category_id: data.category_id,
+                    parent_category_id: data.parent_category_id,
+                    vendor_id: data.vendor_id,
                     status: data.status,
+                    wallet_eligible: data.wallet_eligible ?? true,
+                    rewards_eligible: data.rewards_eligible ?? true,
+                    flex_collection_id: data.flex_collection_id ?? '',
                 });
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : 'Failed to load product';
+                setError(message);
             } finally {
                 setLoading(false);
             }

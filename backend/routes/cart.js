@@ -37,6 +37,8 @@ router.get('/', requireAuth, async (req, res) => {
         p.mrp, 
         p.images, 
         p.stock_quantity,
+        p.wallet_eligible,
+        p.rewards_eligible,
         (p.price * ci.quantity) as total_price
       FROM cart_items ci
       JOIN products p ON ci.product_id = p.id

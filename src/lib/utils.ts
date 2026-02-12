@@ -1,1 +1,22 @@
-import { type ClassValue, clsx } from \"clsx\";\nimport { twMerge } from \"tailwind-merge\";\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs));\n}\n\nexport function formatCurrency(amount: number | string) {\n  const num = typeof amount === 'string' ? parseFloat(amount) : amount;\n  return new Intl.NumberFormat('en-IN', {\n    style: 'currency',\n    currency: 'INR',\n    maximumFractionDigits: 0,\n  }).format(num);\n}\n
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function formatCurrency(amount: number | string) {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(num);
+}
+
+export function calculateDiscount(price: number | string, mrp: number | string) {
+  const selling = typeof price === 'string' ? parseFloat(price) : price;
+  const original = typeof mrp === 'string' ? parseFloat(mrp) : mrp;
+  if (!original || original <= selling) return 0;
+  return Math.round(((original - selling) / original) * 100);
+}

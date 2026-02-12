@@ -99,6 +99,7 @@ router.post('/login', async (req, res) => {
                 name: user.name,
                 wallet_balance: user.wallet_balance,
                 rewards_balance: user.rewards_balance,
+                employer_name: user.employer_name,
             },
         });
 
@@ -117,7 +118,7 @@ router.get('/me', requireAuth, async (req, res) => {
         }
 
         const { rows } = await db.query(
-            'SELECT id, email, name, wallet_balance, rewards_balance FROM users WHERE id = $1',
+            'SELECT id, email, name, wallet_balance, rewards_balance, employer_name FROM users WHERE id = $1',
             [req.user.id]
         );
 
