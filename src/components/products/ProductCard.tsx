@@ -7,6 +7,7 @@ import { Button } from '../ui/Button';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
+import { WalletEligibleBadge } from '@/components/ui/WalletEligibleBadge';
 
 interface ProductCardProps {
   product: Product;
@@ -44,11 +45,7 @@ export function ProductCard({ product, onAddToCart, onAddToWishlist, className }
         )}
       >
         <div className="absolute left-3 top-3 z-10 flex flex-col gap-1.5">
-          {product.badges?.includes('wallet_eligible') && (
-            <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-[10px] font-semibold text-[var(--primary)]">
-              Wallet eligible
-            </span>
-          )}
+          {product.badges?.includes('wallet_eligible') && <WalletEligibleBadge className="text-[10px] px-2 py-0.5" />}
           {discountPercentage > 0 && (
             <span className="rounded-full bg-[var(--primary)] px-2.5 py-1 text-[10px] font-semibold text-white">
               {discountPercentage}% OFF

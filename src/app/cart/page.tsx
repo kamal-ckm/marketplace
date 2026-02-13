@@ -8,6 +8,7 @@ import { Trash2, Plus, Minus, ArrowRight, ShoppingCart, Loader2, Wallet, Shield,
 import Link from 'next/link';
 import { useCustomerAuth } from '@/lib/auth-customer';
 import { Button } from '@/components/ui/Button';
+import { WalletEligibleBadge } from '@/components/ui/WalletEligibleBadge';
 
 export const dynamic = 'force-dynamic';
 
@@ -211,9 +212,7 @@ export default function CartPage() {
                                                 <h3 className="text-[18px] font-bold text-[#0a0a0a] leading-tight mb-1 group-hover:text-[#00a59b] transition-colors">{item.name}</h3>
                                                 <div className="flex items-center gap-2">
                                                     <p className="text-[#0a0a0a] font-bold text-[18px]">{formatCurrency(parseFloat(item.price))}</p>
-                                                    {item.wallet_eligible && (
-                                                        <span className="text-[10px] bg-[#ffc600] text-black font-black uppercase px-2 py-0.5 rounded-[4px]">Wallet</span>
-                                                    )}
+                                                    {item.wallet_eligible && <WalletEligibleBadge className="text-[10px] px-2 py-0.5" />}
                                                 </div>
                                             </div>
                                             <button

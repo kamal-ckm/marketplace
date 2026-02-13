@@ -1,12 +1,13 @@
 'use client';
 
-import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, ShieldCheck } from 'lucide-react';
+import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight } from 'lucide-react';
 import { useCart } from '@/lib/cart-context';
 import { Button } from '../ui/Button';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import { WalletEligibleBadge } from '@/components/ui/WalletEligibleBadge';
 
 export function CartDrawer() {
     const { isCartOpen, setIsCartOpen, items, summary, removeFromCart, updateQuantity } = useCart();
@@ -107,11 +108,7 @@ export function CartDrawer() {
                                                 {formatCurrency(parseFloat(item.price))}
                                             </span>
                                         </div>
-                                        {item.wallet_eligible && (
-                                            <span className="text-[10px] font-black uppercase text-[#00a59b] tracking-widest flex items-center gap-1">
-                                                <ShieldCheck size={10} /> Wallet Eligible
-                                            </span>
-                                        )}
+                                        {item.wallet_eligible && <WalletEligibleBadge className="text-[10px] px-2 py-0.5" />}
                                     </div>
 
                                     <div className="flex items-center justify-between mt-3">

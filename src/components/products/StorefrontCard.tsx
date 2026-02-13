@@ -8,6 +8,7 @@ import { useCart } from '@/lib/cart-context';
 import { useCustomerAuth } from '@/lib/auth-customer';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { WalletEligibleBadge } from '@/components/ui/WalletEligibleBadge';
 
 interface StorefrontCardProps {
   product: APIProductCard;
@@ -97,15 +98,14 @@ export function StorefrontCard({ product }: StorefrontCardProps) {
           {product.stock_quantity === 0 ? 'Out of stock' : 'Add to cart'}
         </Button>
 
-        <div className="flex items-center justify-between text-[11px]">
-          {product.wallet_eligible ? (
-            <span className="rounded-full bg-[var(--primary-soft)] px-2.5 py-1 font-semibold text-[var(--primary)]">Wallet eligible</span>
+        {/* Reserved meta row so CTAs align across cards */}
+        <div className="mt-2 flex min-h-[28px] items-center justify-between text-[11px]">
+          {product.wallet_eligible ? <WalletEligibleBadge /> : <span />}
+
+          {product.stock_quantity > 0 && product.stock_quantity < 10 ? (
+            <span className="font-semibold text-[#c2410c]">Only {product.stock_quantity} left</span>
           ) : (
             <span />
-          )}
-
-          {product.stock_quantity > 0 && product.stock_quantity < 10 && (
-            <span className="font-semibold text-[#c2410c]">Only {product.stock_quantity} left</span>
           )}
         </div>
       </div>

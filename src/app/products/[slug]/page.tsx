@@ -10,6 +10,7 @@ import { useCart } from '@/lib/cart-context';
 import { useCustomerAuth } from '@/lib/auth-customer';
 import { Button } from '@/components/ui/Button';
 import { StorefrontCard } from '@/components/products/StorefrontCard';
+import { WalletEligibleBadge } from '@/components/ui/WalletEligibleBadge';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
@@ -211,9 +212,9 @@ export default function ProductDetailPage() {
             </div>
 
             {product.wallet_eligible && (
-              <p className="mt-4 inline-flex rounded-full bg-[var(--primary-soft)] px-3 py-1 text-[12px] font-semibold text-[var(--primary)]">
-                Wallet eligible product
-              </p>
+              <div className="mt-4">
+                <WalletEligibleBadge />
+              </div>
             )}
 
             <div className="mt-7 border-t border-[var(--border)] pt-5">
