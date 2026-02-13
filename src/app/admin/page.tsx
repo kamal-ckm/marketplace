@@ -70,28 +70,28 @@ export default function AdminDashboard() {
     const cards = [
         {
             title: 'Total Revenue',
-            value: formatCurrency(stats?.metrics.totalRevenue || 0),
+            value: formatCurrency(stats?.metrics?.totalRevenue || 0),
             icon: IndianRupee,
             color: 'bg-blue-500',
             trend: '+12% from last month'
         },
         {
             title: 'Total Orders',
-            value: stats?.metrics.totalOrders || 0,
+            value: stats?.metrics?.totalOrders || 0,
             icon: ShoppingBag,
             color: 'bg-emerald-500',
             trend: '+5% this week'
         },
         {
             title: 'Wallet Utilization',
-            value: formatCurrency(stats?.metrics.walletUtilization || 0),
+            value: formatCurrency(stats?.metrics?.walletUtilization || 0),
             icon: Wallet,
             color: 'bg-[#00A59B]',
             trend: 'High engagement'
         },
         {
             title: 'Rewards Redeemed',
-            value: `${stats?.metrics.rewardsUtilization || 0} pts`,
+            value: `${stats?.metrics?.rewardsUtilization || 0} pts`,
             icon: Gift,
             color: 'bg-amber-500',
             trend: 'Trending up'
@@ -153,7 +153,7 @@ export default function AdminDashboard() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {stats?.recentOrders.map((order) => (
+                                {(stats?.recentOrders || []).map((order) => (
                                     <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <span className="font-medium text-slate-900">{order.user_name}</span>
