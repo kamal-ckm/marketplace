@@ -75,8 +75,8 @@ export function HeroSlideshow({ config }: { config: HomeCustomization }) {
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        {/* Reduced hero height to better match Shopify Mix-style banners */}
-        <div className="relative aspect-[4/3] md:aspect-[16/7]">
+        {/* Fixed-height hero to match Shopify-like banners (~400px on desktop). */}
+        <div className="relative h-[320px] sm:h-[360px] md:h-[400px]">
           <img src={slide.imageUrl} alt={slide.heading || 'Slide'} className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-transparent" />
 
