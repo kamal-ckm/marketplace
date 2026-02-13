@@ -3,7 +3,7 @@
 import { Search, ShoppingCart, Menu, X, Loader2, Shield, ChevronDown, ChevronRight, Phone, MessageSquare, User, LogOut } from 'lucide-react';
 import { Button } from '../ui/Button';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import { useCustomerAuth } from '@/lib/auth-customer';
 import { useCart } from '@/lib/cart-context';
@@ -44,6 +44,9 @@ export function Header() {
   const { session: healthiSession, clearSession } = useHealthiSession();
   const pathname = usePathname();
   const router = useRouter();
+  const headerRef = useRef<HTMLElement | null>(null);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
 
   const entryMode = getEntryMode();
   const isHealthiEntry = entryMode === 'healthi';
@@ -56,6 +59,60 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMegaMenu, setActiveMegaMenu] = useState<string | null>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [isCondensed, setIsCondensed] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!headerRef.current) return;
+
+    const el = headerRef.current;
+    const update = () => setHeaderHeight(el.offsetHeight);
+    update();
+
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    lastScrollY.current = window.scrollY || 0;
+
+    const onScroll = () => {
+      const y = window.scrollY || 0;
+      if (ticking.current) return;
+
+      ticking.current = true;
+      window.requestAnimationFrame(() => {
+        const prevY = lastScrollY.current;
+        const delta = y - prevY;
+
+        // At the top: show full header.
+        if (y < 20) {
+          setIsCondensed(false);
+          setIsHidden(false);
+        } else {
+          setIsCondensed(true);
+          // Hide on scroll down, reveal on scroll up.
+          if (delta > 10) setIsHidden(true);
+          if (delta < -10) setIsHidden(false);
+        }
+
+        lastScrollY.current = y;
+        ticking.current = false;
+      });
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Never hide while the mobile menu is open.
+  useEffect(() => {
+    if (isMenuOpen) setIsHidden(false);
+  }, [isMenuOpen]);
 
   function handleCartClick() {
     const isCartFlowPage = pathname.startsWith('/cart') || pathname.startsWith('/checkout');
@@ -70,8 +127,26 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-white/95 backdrop-blur">
-      <div className="bg-[var(--text-strong)] text-white">
+    <>
+      {/* Spacer to avoid content jump with fixed header */}
+      <div aria-hidden style={{ height: headerHeight }} />
+
+      <header
+        ref={(node) => {
+          headerRef.current = node;
+        }}
+        className={[
+          'fixed left-0 right-0 top-0 z-50 border-b border-[var(--border)] bg-white/95 backdrop-blur will-change-transform',
+          'transition-transform duration-300 ease-out',
+          isHidden ? '-translate-y-full' : 'translate-y-0',
+        ].join(' ')}
+      >
+      <div
+        className={[
+          'bg-[var(--text-strong)] text-white overflow-hidden transition-[max-height,opacity] duration-300 ease-out',
+          isCondensed ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-10 opacity-100',
+        ].join(' ')}
+      >
         <div className="site-container flex min-h-10 items-center justify-between gap-4 text-[12px]">
           <span className="hidden sm:inline-flex items-center gap-2 text-white/90">
             <Phone size={13} />
@@ -89,7 +164,7 @@ export function Header() {
       </div>
 
       <div className="bg-white">
-        <div className="site-container flex items-center justify-between gap-6 py-4">
+        <div className={['site-container flex items-center justify-between gap-6', isCondensed ? 'py-3' : 'py-4'].join(' ')}>
           <Link href="/" className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)] text-lg font-bold text-white">
               H
@@ -204,7 +279,12 @@ export function Header() {
         </div>
       </div>
 
-      <div className="hidden border-t border-[var(--border)] bg-white md:block">
+      <div
+        className={[
+          'hidden border-t border-[var(--border)] bg-white overflow-hidden transition-[max-height,opacity] duration-300 ease-out md:block',
+          isCondensed ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-12 opacity-100',
+        ].join(' ')}
+      >
         <div className="site-container flex items-center justify-start">
           <nav className="flex items-center">
             {categories.map((cat) => (
@@ -276,6 +356,7 @@ export function Header() {
           )}
         </div>
       )}
-    </header>
+      </header>
+    </>
   );
 }
