@@ -69,18 +69,19 @@ export function HeroSlideshow({ config }: { config: HomeCustomization }) {
   const showBadge = Boolean(slide.badgeText?.trim());
 
   return (
-    <section className="rounded-2xl border border-[var(--border)] bg-white p-4 md:p-6">
+    <section className="rounded-2xl border border-[var(--border)] bg-white p-3 md:p-4">
       <div
         className="relative overflow-hidden rounded-2xl bg-[var(--surface-alt)]"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        <div className="relative aspect-[1/1] md:aspect-[5/3]">
+        {/* Reduced hero height to better match Shopify Mix-style banners */}
+        <div className="relative aspect-[4/3] md:aspect-[16/7]">
           <img src={slide.imageUrl} alt={slide.heading || 'Slide'} className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-transparent" />
 
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full max-w-[660px] px-6 py-8 md:px-10">
+            <div className="w-full max-w-[660px] px-6 py-6 md:px-10 md:py-8">
               {showTag && (
                 <div className="mb-4 inline-flex rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white backdrop-blur">
                   {slide.tagText}
@@ -88,7 +89,7 @@ export function HeroSlideshow({ config }: { config: HomeCustomization }) {
               )}
 
               {showHeading && (
-                <h1 className="text-[34px] font-extrabold leading-[1.05] text-white md:text-[52px]" style={{ fontFamily: 'Raleway' }}>
+                <h1 className="text-[32px] font-extrabold leading-[1.05] text-white md:text-[48px]" style={{ fontFamily: 'Raleway' }}>
                   {slide.heading}
                 </h1>
               )}
@@ -157,4 +158,3 @@ export function HeroSlideshow({ config }: { config: HomeCustomization }) {
     </section>
   );
 }
-
