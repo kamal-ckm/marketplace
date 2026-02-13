@@ -348,14 +348,14 @@ export default function CartPage() {
                                                 </div>
                                                 <div>
                                                     <p className="font-bold text-[#0a0a0a] text-[14px]">Rewards</p>
-                                                    <p className="text-[12px] text-[#717182]">{userRewardsBalance} pts available</p>
+                                                    <p className="text-[12px] text-[#717182]">₹{userRewardsBalance} available</p>
                                                 </div>
                                             </div>
                                             {useRewardsSelected && (
                                                 <div className="mt-4">
                                                 <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Redeem points</span>
-                                                    <span className="text-[15px] font-bold text-[#0a0a0a]">{rewardsAmount} pts</span>
+                                                    <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Use rewards</span>
+                                                    <span className="text-[15px] font-bold text-[#0a0a0a]">₹{rewardsAmount}</span>
                                                 </div>
                                                 <input
                                                     type="range"
@@ -367,8 +367,8 @@ export default function CartPage() {
                                                     className="w-full h-1.5 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
                                                 />
                                                 <div className="mt-2 flex justify-between text-[11px] text-[#717182]">
-                                                    <span>0 pts</span>
-                                                    <span>Max {maxRewardsAllowedByEligibility} pts</span>
+                                                    <span>₹0</span>
+                                                    <span>Max ₹{maxRewardsAllowedByEligibility}</span>
                                                 </div>
                                                 {nonRewardsEligibleTotal > 0 && (
                                                     <p className="mt-2 text-[11px] text-[#717182]">

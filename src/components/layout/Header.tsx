@@ -51,6 +51,7 @@ export function Header() {
 
   const cartItemCount = summary?.totalItems || 0;
   const walletBalance = user?.wallet_balance || 0;
+  const rewardsBalance = user?.rewards_balance || 0;
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -114,11 +115,23 @@ export function Header() {
 
           <div className="flex items-center gap-3">
             {isAuthenticated && (
-              <div className="hidden items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--primary-soft)] px-3 py-2 lg:flex">
-                <Shield size={15} className="text-[var(--primary)]" />
-                <div className="leading-tight">
-                  <p className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-subtle)]">Wallet</p>
-                  <p className="text-[13px] font-semibold text-[var(--text-strong)]">{formatCurrency(walletBalance)}</p>
+              <div className="hidden items-center gap-2 lg:flex">
+                <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--primary-soft)] px-3 py-2">
+                  <Shield size={15} className="text-[var(--primary)]" />
+                  <div className="leading-tight">
+                    <p className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-subtle)]">Wallet</p>
+                    <p className="text-[13px] font-semibold text-[var(--text-strong)]">{formatCurrency(walletBalance)}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                  <div className="flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-amber-100 text-[13px] font-bold text-amber-700">
+                    ₹
+                  </div>
+                  <div className="leading-tight">
+                    <p className="text-[10px] uppercase tracking-[0.1em] text-amber-700/80">Rewards</p>
+                    <p className="text-[13px] font-semibold text-amber-900">{formatCurrency(rewardsBalance)}</p>
+                  </div>
                 </div>
               </div>
             )}

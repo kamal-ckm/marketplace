@@ -91,7 +91,7 @@ export default function AdminDashboard() {
         },
         {
             title: 'Rewards Redeemed',
-            value: `${stats?.metrics?.rewardsUtilization || 0} pts`,
+            value: formatCurrency(stats?.metrics?.rewardsUtilization || 0),
             icon: Gift,
             color: 'bg-amber-500',
             trend: 'Trending up'

@@ -437,7 +437,7 @@ export default function ProductForm({ initialData, mode }: ProductFormProps) {
                         <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                             <div>
                                 <h3 className="text-sm font-medium text-slate-900">Rewards Eligible</h3>
-                                <p className="text-xs text-slate-500">Allow customers to redeem reward points</p>
+                                <p className="text-xs text-slate-500">Allow customers to redeem rewards (₹)</p>
                             </div>
                             <input
                                 type="checkbox"
