@@ -3,11 +3,18 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
+import { HeroSlideshow } from '@/components/layout/HeroSlideshow';
 import { StorefrontCard } from '@/components/products/StorefrontCard';
 import { CouponCard } from '@/components/products/CouponCard';
 import { Button } from '@/components/ui/Button';
-import { ArrowRight, Loader2, Package, ShieldCheck, Truck, BadgeCheck, ChevronRight } from 'lucide-react';
+import { Loader2, Package, ShieldCheck, Truck, BadgeCheck, ChevronRight } from 'lucide-react';
 import type { APIProductCard } from '@/types/api';
+import {
+  DEFAULT_HOME_CUSTOMIZATION,
+  HOME_CUSTOMIZATION_STORAGE_KEY,
+  HomeCustomization,
+  parseHomeCustomization,
+} from '@/lib/home-customization';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
@@ -61,6 +68,31 @@ export default function HomePage() {
   const [products, setProducts] = useState<APIProductCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [homeConfig, setHomeConfig] = useState<HomeCustomization>(DEFAULT_HOME_CUSTOMIZATION);
+
+  useEffect(() => {
+    // Load local fallback immediately to avoid a blank hero.
+    if (typeof window !== 'undefined') {
+      setHomeConfig(parseHomeCustomization(localStorage.getItem(HOME_CUSTOMIZATION_STORAGE_KEY)));
+    }
+
+    async function fetchHomeCustomization() {
+      try {
+        const res = await fetch(`${API_BASE}/api/home-customization`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const parsed = parseHomeCustomization(JSON.stringify(data));
+        setHomeConfig(parsed);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(HOME_CUSTOMIZATION_STORAGE_KEY, JSON.stringify(parsed));
+        }
+      } catch (err) {
+        console.error('Failed to fetch home customization:', err);
+      }
+    }
+
+    fetchHomeCustomization();
+  }, []);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -88,47 +120,7 @@ export default function HomePage() {
       <Header />
 
       <main className="site-container py-8 md:py-10">
-        <section className="grid gap-6 rounded-2xl border border-[var(--border)] bg-white p-6 md:grid-cols-2 md:p-10">
-          <div className="flex flex-col justify-center gap-5">
-            <span className="inline-flex w-fit items-center rounded-full bg-[var(--primary-soft)] px-3 py-1 text-[12px] font-semibold text-[var(--primary)]">
-              Curated for Healthi members
-            </span>
-            <h1 className="text-[32px] font-bold leading-tight text-[var(--text-strong)] md:text-[46px]" style={{ fontFamily: 'Raleway' }}>
-              Your Health Marketplace,
-              <br />
-              Smarter and Simpler.
-            </h1>
-            <p className="max-w-lg text-[17px] text-[var(--text-body)]">
-              Shop wellness products with wallet support, verified delivery, and member-first pricing inspired by modern commerce experiences.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link href="#products">
-                <Button size="lg">
-                  Start shopping
-                  <ArrowRight size={17} className="ml-2" />
-                </Button>
-              </Link>
-              <Link href="/cart">
-                <Button variant="outline" size="lg">
-                  View cart
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          <div className="relative overflow-hidden rounded-xl bg-[var(--surface-alt)]">
-            <img
-              src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070"
-              alt="Wellness products"
-              className="h-full min-h-[260px] w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-tr from-black/45 via-black/15 to-transparent" />
-            <div className="absolute bottom-5 left-5 rounded-xl bg-white/95 px-4 py-3 shadow-sm">
-              <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--text-subtle)]">This week highlight</p>
-              <p className="text-[16px] font-semibold text-[var(--text-strong)]">Up to 40% OFF on supplements</p>
-            </div>
-          </div>
-        </section>
+        <HeroSlideshow config={homeConfig} />
 
         <section className="mt-8 rounded-2xl border border-[var(--border)] bg-white p-5 md:p-6">
           <div className="mb-4 flex items-center justify-between">

@@ -18,6 +18,7 @@ const cartRoutes = require('./routes/cart');
 const checkoutRoutes = require('./routes/checkout');
 const adminRoutes = require('./routes/admin'); // Added admin routes
 const taxonomyRoutes = require('./routes/taxonomy');
+const homeCustomizationRoutes = require('./routes/homeCustomization').router;
 const path = require('path');
 
 app.use('/api/auth', authRoutes); // Admin routes
@@ -27,6 +28,7 @@ app.use('/api/checkout', checkoutRoutes); // Checkout routes
 app.use('/api/admin', adminRoutes); // Added admin routes
 app.use('/api', productsRoutes); // Mounts routes at /api/products, /api/admin/products
 app.use('/api', taxonomyRoutes);
+app.use('/api', homeCustomizationRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // Static Uploads Folder

@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { requireAuth, requireAdmin } = require('../lib/auth');
+const { sanitizeHomeCustomization, DEFAULT_HOME_CUSTOMIZATION } = require('./homeCustomization');
 
 // GET /api/admin/stats - Dashboard Metrics
 router.get('/stats', requireAuth, requireAdmin, async (req, res) => {
@@ -58,6 +59,40 @@ router.get('/stats', requireAuth, requireAdmin, async (req, res) => {
     } catch (err) {
         console.error('Admin Stats Error:', err);
         res.status(500).json({ error: 'Failed to fetch dashboard stats.' });
+    }
+});
+
+// GET /api/admin/home-customization - Get homepage slideshow config
+router.get('/home-customization', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const { rows } = await db.query('SELECT value FROM site_settings WHERE key = $1', ['home_customization']);
+        if (!rows[0]?.value) {
+            return res.json(DEFAULT_HOME_CUSTOMIZATION);
+        }
+        return res.json(sanitizeHomeCustomization(rows[0].value));
+    } catch (err) {
+        console.error('Admin Home Customization Error (GET):', err);
+        // Return a safe default so admin UI doesn't break even if migrations weren't run yet.
+        return res.json(DEFAULT_HOME_CUSTOMIZATION);
+    }
+});
+
+// PUT /api/admin/home-customization - Save homepage slideshow config
+router.put('/home-customization', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const sanitized = sanitizeHomeCustomization(req.body || {});
+
+        await db.query(
+            `INSERT INTO site_settings (key, value)
+             VALUES ($1, $2::jsonb)
+             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+            ['home_customization', JSON.stringify(sanitized)]
+        );
+
+        return res.json(sanitized);
+    } catch (err) {
+        console.error('Admin Home Customization Error (PUT):', err);
+        return res.status(500).json({ error: 'Failed to save home customization.' });
     }
 });
 

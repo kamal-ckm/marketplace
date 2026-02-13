@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, Save, RotateCcw, Trash2, Loader2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
@@ -35,6 +35,9 @@ export default function AdminHomeCustomizationPage() {
 
   const [config, setConfig] = useState<HomeCustomization>(initial);
   const [savedAt, setSavedAt] = useState<string>('');
+  const [loadingRemote, setLoadingRemote] = useState<boolean>(true);
+  const [saveError, setSaveError] = useState<string>('');
+  const [saving, setSaving] = useState<boolean>(false);
   const [uploadingSlideId, setUploadingSlideId] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string>('');
 
@@ -59,9 +62,64 @@ export default function AdminHomeCustomizationPage() {
     }));
   }
 
-  function saveConfig() {
-    localStorage.setItem(HOME_CUSTOMIZATION_STORAGE_KEY, JSON.stringify(config));
-    setSavedAt(new Date().toLocaleTimeString());
+  useEffect(() => {
+    async function loadRemote() {
+      setLoadingRemote(true);
+      setSaveError('');
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/home-customization`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+          },
+        });
+
+        if (!res.ok) {
+          setLoadingRemote(false);
+          return;
+        }
+
+        const data = await res.json();
+        const parsed = parseHomeCustomization(JSON.stringify(data));
+        setConfig(parsed);
+        localStorage.setItem(HOME_CUSTOMIZATION_STORAGE_KEY, JSON.stringify(parsed));
+      } catch {
+        // Fallback stays as localStorage/default.
+      } finally {
+        setLoadingRemote(false);
+      }
+    }
+
+    loadRemote();
+  }, []);
+
+  async function saveConfig() {
+    setSaving(true);
+    setSaveError('');
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/home-customization`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify(config),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSaveError(data?.error || 'Failed to save. Please try again.');
+        return;
+      }
+
+      const parsed = parseHomeCustomization(JSON.stringify(data));
+      setConfig(parsed);
+      localStorage.setItem(HOME_CUSTOMIZATION_STORAGE_KEY, JSON.stringify(parsed));
+      setSavedAt(new Date().toLocaleTimeString());
+    } catch {
+      setSaveError('Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleSlideImageUpload(slideId: string, file: File | null) {
@@ -92,10 +150,22 @@ export default function AdminHomeCustomizationPage() {
     }
   }
 
-  function resetDefault() {
+  async function resetDefault() {
     setConfig(DEFAULT_HOME_CUSTOMIZATION);
     localStorage.setItem(HOME_CUSTOMIZATION_STORAGE_KEY, JSON.stringify(DEFAULT_HOME_CUSTOMIZATION));
     setSavedAt(new Date().toLocaleTimeString());
+    try {
+      await fetch(`${API_BASE}/api/admin/home-customization`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify(DEFAULT_HOME_CUSTOMIZATION),
+      });
+    } catch {
+      // Keep local fallback.
+    }
   }
 
   return (
@@ -112,14 +182,16 @@ export default function AdminHomeCustomizationPage() {
             <RotateCcw size={16} className="mr-2" />
             Reset Default
           </Button>
-          <Button onClick={saveConfig}>
+          <Button onClick={saveConfig} disabled={saving}>
             <Save size={16} className="mr-2" />
-            Save
+            {saving ? 'Saving...' : 'Save'}
           </Button>
         </div>
       </div>
 
       {savedAt && <p className="text-xs text-emerald-600 font-semibold">Saved at {savedAt}</p>}
+      {saveError && <p className="text-sm font-semibold text-red-600">{saveError}</p>}
+      {loadingRemote && <p className="text-xs text-slate-500 font-semibold">Loading saved configuration...</p>}
 
       <div className="rounded-xl border border-slate-200 bg-white p-6">
         <label className="block text-sm font-semibold text-slate-800 mb-2">Auto-play duration (seconds)</label>
