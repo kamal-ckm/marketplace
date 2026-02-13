@@ -36,11 +36,9 @@ export default function EditProductPage() {
                     stock_quantity: String(data.stock_quantity),
                     images: data.images || [],
                     category: data.category,
-                    category_id: data.category_id,
-                    parent_category_id: data.parent_category_id,
-                    vendor_id: data.vendor_id,
                     status: data.status,
-                    wallet_eligible: data.wallet_eligible ?? true,
+                    // Wallet eligibility is controlled by Flex Collection ID.
+                    wallet_eligible: Boolean(String(data.flex_collection_id ?? '').trim()),
                     rewards_eligible: data.rewards_eligible ?? true,
                     flex_collection_id: data.flex_collection_id ?? '',
                 });

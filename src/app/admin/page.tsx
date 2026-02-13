@@ -48,7 +48,7 @@ export default function AdminDashboard() {
     async function fetchStats() {
         try {
             const res = await fetch(`${API_BASE}/api/admin/stats`, {
-                headers: { ...getAuthHeaders() },
+                headers: getAuthHeaders(),
             });
             const data = await res.json();
             setStats(data);

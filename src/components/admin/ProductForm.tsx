@@ -35,20 +35,26 @@ export default function ProductForm({ initialData, mode }: ProductFormProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [form, setForm] = useState<ProductFormData>(
-        initialData || {
-            name: '',
-            slug: '',
-            description: '',
-            price: '',
-            mrp: '',
-            stock_quantity: '',
-            images: [],
-            category: '',
-            status: 'DRAFT',
-            wallet_eligible: true,
-            rewards_eligible: true,
-            flex_collection_id: '',
-        }
+        initialData
+            ? {
+                  ...initialData,
+                  // Wallet eligibility is controlled by Flex Collection ID.
+                  wallet_eligible: Boolean(initialData.flex_collection_id?.trim()),
+              }
+            : {
+                  name: '',
+                  slug: '',
+                  description: '',
+                  price: '',
+                  mrp: '',
+                  stock_quantity: '',
+                  images: [],
+                  category: '',
+                  status: 'DRAFT',
+                  wallet_eligible: false,
+                  rewards_eligible: true,
+                  flex_collection_id: '',
+              }
     );
 
     const [saving, setSaving] = useState(false);
@@ -67,6 +73,17 @@ export default function ProductForm({ initialData, mode }: ProductFormProps) {
     }
 
     function handleChange(field: keyof ProductFormData, value: string) {
+        if (field === 'flex_collection_id') {
+            const trimmed = value.trim();
+            setForm((prev) => ({
+                ...prev,
+                flex_collection_id: value,
+                // Wallet eligibility is derived from Flex Collection ID.
+                wallet_eligible: Boolean(trimmed),
+            }));
+            return;
+        }
+
         setForm((prev) => ({ ...prev, [field]: value }));
     }
 
@@ -136,6 +153,8 @@ export default function ProductForm({ initialData, mode }: ProductFormProps) {
         setError('');
 
         try {
+            const derivedWalletEligible = Boolean(form.flex_collection_id?.trim());
+
             const payload = {
                 name: form.name,
                 description: form.description,
@@ -145,7 +164,8 @@ export default function ProductForm({ initialData, mode }: ProductFormProps) {
                 images: form.images,
                 category: form.category,
                 status: publishAfterSave ? 'PUBLISHED' : form.status,
-                wallet_eligible: form.wallet_eligible,
+                // Wallet eligibility is controlled by Flex Collection ID.
+                wallet_eligible: derivedWalletEligible,
                 rewards_eligible: form.rewards_eligible,
                 flex_collection_id: form.flex_collection_id,
                 ...(mode === 'create' && form.slug ? { slug: form.slug } : {}),
@@ -403,14 +423,16 @@ export default function ProductForm({ initialData, mode }: ProductFormProps) {
                         <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                             <div>
                                 <h3 className="text-sm font-medium text-slate-900">Wallet Eligible</h3>
-                                <p className="text-xs text-slate-500">Allow customers to pay using health wallet</p>
+                                <p className="text-xs text-slate-500">Enabled only when Flex Collection ID is set</p>
                             </div>
-                            <input
-                                type="checkbox"
-                                checked={form.wallet_eligible}
-                                onChange={(e) => setForm(prev => ({ ...prev, wallet_eligible: e.target.checked }))}
-                                className="w-5 h-5 accent-[#00A59B]"
-                            />
+                            <span
+                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ${form.flex_collection_id?.trim()
+                                    ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20'
+                                    : 'bg-slate-100 text-slate-600 ring-slate-500/10'
+                                    }`}
+                            >
+                                {form.flex_collection_id?.trim() ? 'Enabled' : 'Disabled'}
+                            </span>
                         </div>
                         <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                             <div>
@@ -435,7 +457,10 @@ export default function ProductForm({ initialData, mode }: ProductFormProps) {
                             placeholder="e.g. FLEX_FITNESS_001"
                             className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A59B]/30 focus:border-[#00A59B] transition-colors"
                         />
-                        <p className="text-[10px] text-slate-400 mt-1">Links this product to specific employer-sponsored benefit rules.</p>
+                        <p className="text-[10px] text-slate-400 mt-1">
+                            This controls both wallet eligibility and which employer benefit bucket/program rules this product belongs to (entitlement validation).
+                            Leave blank if the product should be purchased only via personal payment and/or rewards.
+                        </p>
                     </div>
                 </div>
 

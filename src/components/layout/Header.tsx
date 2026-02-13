@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import { useCustomerAuth } from '@/lib/auth-customer';
 import { useCart } from '@/lib/cart-context';
+import { getEntryMode, useHealthiSession } from '@/lib/healthi-session';
 import { usePathname, useRouter } from 'next/navigation';
 
 const categories = [
@@ -40,8 +41,13 @@ const categories = [
 export function Header() {
   const { user, isAuthenticated, logout, isLoading: authLoading } = useCustomerAuth();
   const { summary, loading: cartLoading, setIsCartOpen } = useCart();
+  const { session: healthiSession, clearSession } = useHealthiSession();
   const pathname = usePathname();
   const router = useRouter();
+
+  const entryMode = getEntryMode();
+  const isHealthiEntry = entryMode === 'healthi';
+  const hasHealthiSession = Boolean(healthiSession?.token);
 
   const cartItemCount = summary?.totalItems || 0;
   const walletBalance = user?.wallet_balance || 0;
@@ -130,7 +136,27 @@ export function Header() {
               )}
             </button>
 
-            {authLoading ? (
+            {isHealthiEntry ? (
+              hasHealthiSession ? (
+                <div className="hidden items-center gap-2 sm:flex">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-alt)] text-sm font-bold uppercase text-[var(--text-strong)]">
+                    {(healthiSession?.employee?.name || 'H').charAt(0)}
+                  </div>
+                  <div className="hidden leading-tight md:block">
+                    <p className="text-[13px] font-semibold text-[var(--text-strong)]">{healthiSession?.employee?.name || 'Employee'}</p>
+                    <button
+                      onClick={clearSession}
+                      className="inline-flex items-center gap-1 text-[11px] text-[var(--text-subtle)] hover:text-red-600"
+                    >
+                      <LogOut size={12} />
+                      Clear Session
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <span className="hidden text-[12px] font-semibold text-[var(--text-subtle)] sm:block">Open from Healthi</span>
+              )
+            ) : authLoading ? (
               <Loader2 className="animate-spin text-[var(--text-subtle)]" size={18} />
             ) : isAuthenticated ? (
               <div className="hidden items-center gap-2 sm:flex">
@@ -227,7 +253,7 @@ export function Header() {
             ))}
           </div>
 
-          {!isAuthenticated && (
+          {!isHealthiEntry && !isAuthenticated && (
             <Link href="/login" className="mt-4 block" onClick={() => setIsMenuOpen(false)}>
               <Button className="w-full" size="sm">
                 <User size={16} className="mr-2" />

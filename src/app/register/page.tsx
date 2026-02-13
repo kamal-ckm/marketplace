@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCustomerAuth } from '@/lib/auth-customer';
+import { getEntryMode, useHealthiSession } from '@/lib/healthi-session';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -10,6 +11,8 @@ import { Button } from '@/components/ui/Button';
 export default function RegisterPage() {
   const router = useRouter();
   const { register, isAuthenticated } = useCustomerAuth();
+  const { session: healthiSession } = useHealthiSession();
+  const entryMode = getEntryMode();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -18,9 +21,36 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (isAuthenticated) {
-    router.push('/');
+  const isHealthiEntry = entryMode === 'healthi';
+  const hasHealthiSession = Boolean(healthiSession?.token);
+  const shouldBlock = isHealthiEntry && !hasHealthiSession;
+  const shouldRedirectHome = (isHealthiEntry && hasHealthiSession) || (!isHealthiEntry && isAuthenticated);
+
+  useEffect(() => {
+    if (shouldRedirectHome) router.replace('/');
+  }, [router, shouldRedirectHome]);
+
+  if (shouldBlock) {
+    return (
+      <div className="min-h-screen bg-[var(--background)] px-4 py-12">
+        <div className="mx-auto max-w-md rounded-2xl border border-[var(--border)] bg-white p-8 shadow-sm">
+          <h1 className="text-[22px] font-bold text-[var(--text-strong)]" style={{ fontFamily: 'Raleway' }}>
+            Create account
+          </h1>
+          <p className="mt-2 text-[14px] text-[var(--text-subtle)]">
+            Accounts are managed in the Healthi app. Please open the marketplace from Healthi to continue.
+          </p>
+          <div className="mt-6">
+            <Link href="/">
+              <Button fullWidth>Go to homepage</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
+
+  if (shouldRedirectHome) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

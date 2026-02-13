@@ -129,7 +129,6 @@ router.post('/products', requireAuth, requireAdmin, async (req, res) => {
             categoryId,
             vendorId,
             slug: providedSlug,
-            wallet_eligible = true,
             rewards_eligible = true,
             flex_collection_id = null,
         } = req.body;
@@ -154,6 +153,7 @@ router.post('/products', requireAuth, requireAdmin, async (req, res) => {
         const finalSlug = providedSlug ? await generateUniqueSlug(providedSlug) : await generateUniqueSlug(name);
         const status = 'DRAFT';
         const imageArray = Array.isArray(images) ? images : [];
+        const derivedWalletEligible = Boolean(flex_collection_id && String(flex_collection_id).trim());
 
         const query = `
       INSERT INTO products (
@@ -176,7 +176,7 @@ router.post('/products', requireAuth, requireAdmin, async (req, res) => {
             resolvedCategory.id,
             resolvedVendor.id,
             status,
-            wallet_eligible,
+            derivedWalletEligible,
             rewards_eligible,
             flex_collection_id,
         ];
@@ -205,7 +205,6 @@ router.put('/products/:id', requireAuth, requireAdmin, async (req, res) => {
             vendorId,
             status,
             slug,
-            wallet_eligible,
             rewards_eligible,
             flex_collection_id,
         } = req.body;
@@ -223,6 +222,8 @@ router.put('/products/:id', requireAuth, requireAdmin, async (req, res) => {
 
         const resolvedCategory = await resolveCategory(categoryId || currentProduct.category_id, category || currentProduct.category);
         const resolvedVendor = await resolveVendor(vendorId || currentProduct.vendor_id);
+        const nextFlexCollectionId = flex_collection_id !== undefined ? flex_collection_id : currentProduct.flex_collection_id;
+        const derivedWalletEligible = Boolean(nextFlexCollectionId && String(nextFlexCollectionId).trim());
 
         const query = `
       UPDATE products
@@ -256,9 +257,9 @@ router.put('/products/:id', requireAuth, requireAdmin, async (req, res) => {
             resolvedCategory?.id || currentProduct.category_id,
             resolvedVendor?.id || currentProduct.vendor_id,
             status || currentProduct.status,
-            wallet_eligible !== undefined ? wallet_eligible : currentProduct.wallet_eligible,
+            derivedWalletEligible,
             rewards_eligible !== undefined ? rewards_eligible : currentProduct.rewards_eligible,
-            flex_collection_id !== undefined ? flex_collection_id : currentProduct.flex_collection_id,
+            nextFlexCollectionId,
             id,
         ];
 

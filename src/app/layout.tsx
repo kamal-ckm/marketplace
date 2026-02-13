@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 import { CustomerAuthProvider } from "@/lib/auth-customer";
 import { CartProvider } from "@/lib/cart-context";
 import { CartDrawer } from "@/components/layout/CartDrawer";
+import { HealthiSessionProvider } from "@/lib/healthi-session";
 
 export default function RootLayout({
   children,
@@ -32,15 +33,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${raleway.variable} ${sourceSans.variable} antialiased`}>
-        <CustomerAuthProvider>
-          <CartProvider>
-            {children}
-            <CartDrawer />
-          </CartProvider>
-        </CustomerAuthProvider>
+        <HealthiSessionProvider>
+          <CustomerAuthProvider>
+            <CartProvider>
+              {children}
+              <CartDrawer />
+            </CartProvider>
+          </CustomerAuthProvider>
+        </HealthiSessionProvider>
       </body>
     </html>
   );
 }
-
 
