@@ -129,7 +129,11 @@ export function Header() {
   return (
     <>
       {/* Spacer to avoid content jump with fixed header */}
-      <div aria-hidden style={{ height: headerHeight }} />
+      <div
+        aria-hidden
+        className="transition-[height] duration-300 ease-out"
+        style={{ height: isHidden ? 0 : headerHeight }}
+      />
 
       <header
         ref={(node) => {
