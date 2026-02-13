@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Package, LogOut, LayoutDashboard, ShoppingBag, SlidersHorizontal, Tags, Building2 } from 'lucide-react';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { useEffect } from 'react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard, exact: true },
@@ -24,6 +25,13 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  useEffect(() => {
+    // Avoid router navigation during render; redirect after auth state is known.
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/admin/login');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F1F5F9] flex items-center justify-center">
@@ -33,8 +41,11 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    router.push('/admin/login');
-    return null;
+    return (
+      <div className="min-h-screen bg-[#F1F5F9] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00A59B]" />
+      </div>
+    );
   }
 
   return (
