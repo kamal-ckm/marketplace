@@ -6,10 +6,20 @@ const fs = require('fs');
 const { getStorageProvider } = require('../lib/storageProvider');
 const { requireAuth, requireAdmin } = require('../lib/auth');
 
-// Ensure upload directory exists (used by both local storage AND as temp dir for cloud uploads)
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+// Ensure upload directory exists (used by both local storage AND as temp dir for cloud uploads).
+// On Vercel/serverless, the filesystem is read-only except for /tmp.
+const uploadDir = process.env.VERCEL
+    ? path.join('/tmp', 'healthi-uploads')
+    : path.join(__dirname, '../uploads');
+
+try {
+    if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+    }
+} catch (e) {
+    // Don't crash the whole API if the directory can't be created.
+    // Upload route will return a 500 if used and disk isn't writable.
+    console.error('Failed to create upload dir:', uploadDir, e);
 }
 
 // Configure Storage — always write to disk first (multer requirement)
